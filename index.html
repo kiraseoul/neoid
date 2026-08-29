@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<!-- built by kiraseoul -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEO ID Matcher</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #000000;
+    --border: #000000;
+    --muted-border: #cccccc;
+    --male-bg: #eaf3ff;
+    --female-bg: #ffe9f1;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Cascadia Code', 'Consolas', 'SFMono-Regular', Menlo, monospace;
+    font-size: 13px;
+  }
+
+  body { padding: 24px; }
+
+  h1 {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.01em;
+  }
+
+  .subtitle {
+    font-weight: 400;
+    margin: 0 0 20px 0;
+    font-size: 12px;
+  }
+
+  /* ---- Tabs ---- */
+  .tab-nav {
+    display: flex;
+    gap: 0;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab-btn {
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--bg);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    padding: 8px 20px;
+    cursor: pointer;
+    margin-right: 4px;
+    position: relative;
+    top: 1px;
+  }
+
+  .tab-btn.active {
+    background: var(--fg);
+    color: var(--bg);
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .placeholder-note {
+    padding: 24px;
+    border: 1px dashed var(--muted-border);
+    text-align: center;
+    font-weight: 400;
+    color: #444;
+  }
+
+  .panel {
+    border: 1px solid var(--border);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .panel-title {
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 10px 0;
+  }
+
+  .upload-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .upload-slot {
+    flex: 1 1 280px;
+    min-width: 240px;
+  }
+
+  .upload-slot label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+
+  .upload-slot .hint {
+    font-weight: 400;
+    font-size: 11px;
+    color: #444;
+    margin-top: 4px;
+  }
+
+  input[type="file"] {
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--fg);
+    border: 1px solid var(--border);
+    padding: 6px;
+    width: 100%;
+    background: var(--bg);
+  }
+
+  .status-line {
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 6px;
+    min-height: 14px;
+  }
+
+  .status-line.ok::before { content: "✓ "; }
+  .status-line.err::before { content: "✗ "; }
+  .status-line.err { font-weight: 700; }
+
+  button, select {
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--bg);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  button:hover:not(:disabled) { background: var(--fg); color: var(--bg); }
+
+  button:disabled {
+    color: #999;
+    border-color: #999;
+    cursor: not-allowed;
+  }
+
+  .actions-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+    position: relative;
+  }
+
+  .result-meta {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .result-meta .muted { font-weight: 400; color: #444; }
+
+  .columns-dropdown-wrap { position: relative; }
+
+  .columns-panel {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 8px;
+    z-index: 10;
+    min-width: 160px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  .columns-panel.open { display: block; }
+
+  .columns-panel label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 400;
+    text-transform: none;
+    padding: 3px 0;
+    cursor: pointer;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  thead th {
+    text-align: left;
+    font-weight: 700;
+    border: 1px solid var(--border);
+    padding: 6px 8px;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  thead th:hover { text-decoration: underline; }
+  thead th::after { content: " ⤫"; font-weight: 400; font-size: 9px; opacity: 0.5; }
+
+  thead .filter-row th {
+    padding: 4px;
+    font-weight: 400;
+    cursor: default;
+  }
+
+  thead .filter-row th::after { content: ""; }
+  thead .filter-row th:hover { text-decoration: none; }
+
+  thead .filter-row input,
+  thead .filter-row select {
+    width: 100%;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 400;
+    border: 1px solid var(--muted-border);
+    padding: 4px 5px;
+    background: var(--bg);
+    color: var(--fg);
+    text-transform: none;
+  }
+
+  tbody td {
+    border: 1px solid var(--muted-border);
+    padding: 6px 8px;
+    font-weight: 400;
+    white-space: nowrap;
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  tbody tr.unmatched td { font-weight: 600; font-style: italic; }
+
+  td.name-male { background: var(--male-bg); }
+  td.name-female { background: var(--female-bg); }
+
+  td a { color: var(--fg); text-decoration: underline; }
+
+  .table-wrap {
+    max-height: 60vh;
+    overflow: auto;
+    border: 1px solid var(--border);
+  }
+
+  .empty-state {
+    padding: 24px;
+    text-align: center;
+    font-weight: 400;
+    color: #444;
+    border: 1px dashed var(--muted-border);
+  }
+
+  /* ---- Analysis tab ---- */
+  .confidence-banner {
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    font-weight: 700;
+    font-size: 12px;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .stat-box {
+    border: 1px solid var(--muted-border);
+    padding: 10px 12px;
+  }
+
+  .stat-box .stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #444;
+    margin-bottom: 4px;
+  }
+
+  .stat-box .stat-value {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .chart-box {
+    border: 1px solid var(--border);
+    padding: 12px;
+  }
+
+  .chart-box h3 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+  }
+
+  .chart-box canvas { max-height: 240px; }
+
+  .warn-list { font-size: 12px; padding-left: 18px; margin: 6px 0 0 0; }
+  .warn-list li { margin-bottom: 4px; }
+  .warn-none { font-size: 12px; color: #444; }
+
+  .checker-form {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: end;
+    margin-bottom: 12px;
+  }
+
+  .checker-field label {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .checker-field input {
+    font-family: inherit;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    padding: 6px 8px;
+    width: 160px;
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+  .checker-result {
+    border: 1px solid var(--border);
+    padding: 12px;
+    font-size: 12px;
+    display: none;
+  }
+
+  .checker-result.show { display: block; }
+  .checker-result div { margin-bottom: 4px; }
+  .checker-result strong { font-weight: 700; }
+
+  /* ---- watermark & easter eggs ---- */
+  .watermark {
+    position: fixed;
+    bottom: 6px;
+    right: 10px;
+    font-size: 10px;
+    color: #bbbbbb;
+    letter-spacing: 0.03em;
+    user-select: none;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .footer-credit {
+    text-align: center;
+    font-size: 10px;
+    color: #999999;
+    margin-top: 32px;
+    padding-bottom: 12px;
+    letter-spacing: 0.03em;
+  }
+
+  .easter-toast {
+    position: fixed;
+    bottom: 26px;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    background: #000000;
+    color: #ffffff;
+    padding: 10px 18px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid #000000;
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  .easter-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  body.invert-flourish { filter: invert(1); }
+
+  .credits-panel {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 22px 30px;
+    font-size: 12px;
+    text-align: center;
+    z-index: 250;
+  }
+
+  .credits-panel.show { display: block; }
+  .credits-panel .cp-title { font-weight: 700; margin-bottom: 6px; }
+  .credits-panel .cp-sub { color: #666; font-size: 10px; margin-top: 8px; }
+
+  @keyframes eggFall {
+    from { transform: translateY(-24px); opacity: 1; }
+    to { transform: translateY(100vh); opacity: 0; }
+  }
+
+  .rain-char {
+    position: fixed;
+    top: -24px;
+    font-size: 14px;
+    color: #000000;
+    z-index: 150;
+    pointer-events: none;
+    animation-name: eggFall;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+  }
+</style>
+</head>
+<body>
+
+<h1 id="mainTitle">NEO ID Matcher</h1>
+<p class="subtitle">Cross-reference a shortlist of NEO IDs against a name and registration-number reference workbook.</p>
+
+<div class="tab-nav">
+  <button class="tab-btn active" id="tabBtnMatch" data-tab="match">Match Finder</button>
+  <button class="tab-btn" id="tabBtnAnalysis" data-tab="analysis">Analysis</button>
+</div>
+
+<div class="tab-panel" id="tabAnalysis">
+  <div class="empty-state" id="analysisEmpty">Run a match on the Match Finder tab first — analysis is computed from the match results.</div>
+  <div id="analysisContent" style="display:none;">
+
+    <div class="actions-row" style="margin-top:0; margin-bottom:12px;">
+      <div class="confidence-banner" id="confidenceBanner" style="margin-bottom:0; flex:1;"></div>
+      <button id="copyJsonPromptBtn">Copy JSON + Prompt</button>
+    </div>
+
+    <div class="stat-grid" id="summaryStats"></div>
+
+    <div class="chart-grid">
+      <div class="chart-box"><h3>CGPA distribution (bands)</h3><canvas id="chartCgpaBands"></canvas></div>
+      <div class="chart-box"><h3>Gender split</h3><canvas id="chartGender"></canvas></div>
+      <div class="chart-box"><h3>Branch distribution</h3><canvas id="chartBranch"></canvas></div>
+      <div class="chart-box"><h3>CGPA by branch (mean)</h3><canvas id="chartCgpaByBranch"></canvas></div>
+    </div>
+
+    <div class="panel">
+      <p class="panel-title">Branch × Gender</p>
+      <div class="table-wrap" style="max-height: 300px;">
+        <table id="branchGenderTable"></table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="panel-title">Correlation</p>
+      <div id="correlationBox"></div>
+    </div>
+
+    <div class="panel">
+      <p class="panel-title">Candidate checker</p>
+      <div class="checker-form">
+        <div class="checker-field"><label>CGPA</label><input type="text" id="checkCgpa" placeholder="e.g. 8.7"></div>
+        <div class="checker-field"><label>Gender</label><input type="text" id="checkGender" placeholder="male / female"></div>
+        <div class="checker-field"><label>Reg No</label><input type="text" id="checkRegNo" placeholder="e.g. 23bai1234"></div>
+        <div class="checker-field"><label>Branch text</label><input type="text" id="checkBranchText" placeholder="optional, free text"></div>
+        <button id="checkBtn">Check</button>
+      </div>
+      <div class="checker-result" id="checkerResult"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="tab-panel active" id="tabMatch">
+
+  <div class="panel">
+    <p class="panel-title">1. Upload files</p>
+    <div class="upload-row">
+      <div class="upload-slot">
+        <label for="refFile">Reference workbook (.xlsx)</label>
+        <input type="file" id="refFile" accept=".xlsx,.xls">
+        <div class="hint">Auto-loads "reference_combined.xlsx" from this same folder when hosted (e.g. GitHub Pages). Use this picker to override it for one session, or as the fallback when opened as a local file.</div>
+        <div class="status-line" id="refStatus"></div>
+      </div>
+      <div class="upload-slot">
+        <label for="shortlistFile">Shortlist sheet (.xlsx)</label>
+        <input type="file" id="shortlistFile" accept=".xlsx,.xls">
+        <div class="hint">Any sheet with a column whose header contains "neo" and "id" (case-insensitive). Match runs automatically once both files are loaded.</div>
+        <div class="status-line" id="shortlistStatus"></div>
+      </div>
+    </div>
+    <div class="actions-row">
+      <button id="runMatchBtn" disabled>Run match</button>
+      <div class="result-meta" id="shortlistRowsStat"></div>
+      <div class="result-meta" id="minCgpaStat"></div>
+      <div style="flex:1;"></div>
+      <label style="font-size:11px; font-weight:700; text-transform:uppercase;">Sort
+        <select id="sortModeSelect" style="margin-left:6px;">
+          <option value="default">Default (matched first)</option>
+          <option value="cgpa-desc">CGPA: High → Low</option>
+          <option value="cgpa-asc">CGPA: Low → High</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <div class="panel" id="resultsPanel" style="display:none;">
+    <div class="actions-row" style="margin-top:0;">
+      <p class="panel-title" style="margin:0;">2. Results</p>
+      <div class="result-meta" id="resultMeta"></div>
+    </div>
+    <div class="table-wrap">
+      <table id="resultTable">
+        <thead>
+          <tr id="headerRow"></tr>
+          <tr class="filter-row" id="filterRow"></tr>
+        </thead>
+        <tbody id="resultBody"></tbody>
+      </table>
+    </div>
+    <div class="actions-row" style="justify-content:flex-end;">
+      <div class="columns-dropdown-wrap">
+        <button id="columnsBtn">Columns ▾</button>
+        <div class="columns-panel" id="columnsPanel"></div>
+      </div>
+      <button id="downloadBtn" disabled>Download Excel (Matched + Unmatched sheets)</button>
+    </div>
+  </div>
+
+  <div class="empty-state" id="emptyState">Upload both files above — the match runs automatically.</div>
+
+</div>
+
+<div class="footer-credit">— kiraseoul</div>
+<div class="watermark">kiraseoul</div>
+<div class="easter-toast" id="easterToast"></div>
+<div class="credits-panel" id="creditsPanel">
+  <div class="cp-title">NEO ID Matcher</div>
+  <div>built by kiraseoul</div>
+  <div class="cp-sub">press ? to close · try typing "kiraseoul" · try the konami code</div>
+</div>
+
+<script>
+  // ---------------- Tabs ----------------
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab' + btn.dataset.tab.charAt(0).toUpperCase() + btn.dataset.tab.slice(1)).classList.add('active');
+    });
+  });
+
+  // ---------------- Column configuration ----------------
+  // 'degree' is intentionally excluded — never shown.
+  const COLUMN_DEFS = [
+    { key: 'neo_id', label: 'Neo ID' },
+    { key: 'name', label: 'Name' },
+    { key: 'reg_no', label: 'Reg No', filter: 'regBranch' },
+    { key: 'cgpa', label: 'CGPA' },
+    { key: 'email id (personal id)', label: 'Email' },
+    { key: 'phone no', label: 'Phone' },
+    { key: 'gender', label: 'Gender', filter: 'gender' },
+    { key: 'campus', label: 'Campus', filter: 'campus' },
+    { key: '10th', label: '10th' },
+    { key: '12th', label: '12th' },
+    { key: 'resume link', label: 'Resume', render: 'link' },
+    { key: 'brach', label: 'Branch' },
+  ];
+
+  let refWorkbook = null;
+  let shortlistRows = null;
+  let fullResults = [];
+  let filters = {};
+  let hiddenCols = new Set();
+
+  const refFileInput = document.getElementById('refFile');
+  const shortlistFileInput = document.getElementById('shortlistFile');
+  const refStatus = document.getElementById('refStatus');
+  const shortlistStatus = document.getElementById('shortlistStatus');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const resultsPanel = document.getElementById('resultsPanel');
+  const emptyState = document.getElementById('emptyState');
+  const resultMeta = document.getElementById('resultMeta');
+  const headerRow = document.getElementById('headerRow');
+  const filterRow = document.getElementById('filterRow');
+  const resultBody = document.getElementById('resultBody');
+  const columnsBtn = document.getElementById('columnsBtn');
+  const columnsPanel = document.getElementById('columnsPanel');
+
+  function setStatus(el, msg, ok) {
+    el.textContent = msg;
+    el.className = 'status-line ' + (ok ? 'ok' : 'err');
+  }
+
+  function extractBranchCode(regNo) {
+    const m = String(regNo || '').match(/^\d{2}([a-z]+)/i);
+    return m ? m[1].toLowerCase() : '';
+  }
+
+  function maybeAutoRun() {
+    updateRunEnabled();
+    if (refWorkbook && shortlistRows) runMatch();
+  }
+
+  function updateRunEnabled() {
+    document.getElementById('runMatchBtn').disabled = !(refWorkbook && shortlistRows);
+  }
+
+  const REF_FILENAME = 'reference_combined.xlsx'; // place this file next to the HTML file in the repo
+
+  function parseRefWorkbook(data, sourceLabel) {
+    const wb = XLSX.read(data, { type: 'array' });
+    if (!wb.Sheets['A_name'] || !wb.Sheets['B_reg']) {
+      setStatus(refStatus, 'Missing "A_name" or "B_reg" sheet in this workbook.', false);
+      refWorkbook = null;
+      return;
+    }
+    const sheetA = XLSX.utils.sheet_to_json(wb.Sheets['A_name']);
+    const sheetB = XLSX.utils.sheet_to_json(wb.Sheets['B_reg']);
+    refWorkbook = { sheetA, sheetB };
+    setStatus(refStatus, `${sourceLabel} — A_name: ${sheetA.length} rows, B_reg: ${sheetB.length} rows.`, true);
+    maybeAutoRun();
+  }
+
+  async function tryAutoLoadReference() {
+    try {
+      const res = await fetch(REF_FILENAME);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.arrayBuffer();
+      parseRefWorkbook(data, `Auto-loaded "${REF_FILENAME}"`);
+    } catch (err) {
+      // Expected when opened as a local file (file://) rather than hosted (https://) —
+      // browsers block reading local files that way. Manual upload still works below.
+    }
+  }
+
+  refFileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const data = await file.arrayBuffer();
+      parseRefWorkbook(data, 'Loaded');
+    } catch (err) {
+      setStatus(refStatus, 'Could not read this file: ' + err.message, false);
+      refWorkbook = null;
+      updateRunEnabled();
+    }
+  });
+
+  tryAutoLoadReference();
+
+  // ---------------- Watermark / easter eggs ----------------
+  console.log('%c✦ kiraseoul ✦', 'font-weight:bold;font-size:15px;');
+  console.log('%cNEO ID Matcher — built quietly, runs entirely offline.', 'color:#666;font-size:11px;');
+
+  function isTypingInField(e) {
+    const tag = (e.target.tagName || '').toLowerCase();
+    return tag === 'input' || tag === 'select' || tag === 'textarea';
+  }
+
+  function showToast(msg, ms = 2200) {
+    const toast = document.getElementById('easterToast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => toast.classList.remove('show'), ms);
+  }
+
+  function flourishInvert() {
+    document.body.classList.add('invert-flourish');
+    setTimeout(() => document.body.classList.remove('invert-flourish'), 350);
+  }
+
+  function triggerRain() {
+    const chars = ['•', '#', '◦', '∙'];
+    for (let i = 0; i < 40; i++) {
+      const el = document.createElement('div');
+      el.className = 'rain-char';
+      el.textContent = chars[Math.floor(Math.random() * chars.length)];
+      el.style.left = Math.random() * 100 + 'vw';
+      el.style.animationDuration = (1.4 + Math.random() * 1.4) + 's';
+      el.style.animationDelay = (Math.random() * 0.5) + 's';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }
+  }
+
+  function toggleCreditsPanel() {
+    document.getElementById('creditsPanel').classList.toggle('show');
+  }
+
+  // -- title click counter --
+  let titleClicks = 0, titleClickTimer = null;
+  document.getElementById('mainTitle').addEventListener('click', () => {
+    titleClicks++;
+    clearTimeout(titleClickTimer);
+    titleClickTimer = setTimeout(() => (titleClicks = 0), 1500);
+    if (titleClicks === 5) {
+      titleClicks = 0;
+      showToast('✦ kiraseoul was here ✦');
+      flourishInvert();
+    }
+  });
+
+  // -- typed word + konami code, both keyboard-driven --
+  let typedBuffer = '';
+  let konamiBuffer = [];
+  const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+
+  document.addEventListener('keydown', (e) => {
+    if (isTypingInField(e)) return;
+
+    if (e.key === '?') {
+      toggleCreditsPanel();
+      return;
+    }
+
+    if (e.key.length === 1) {
+      typedBuffer = (typedBuffer + e.key).slice(-9).toLowerCase();
+      if (typedBuffer === 'kiraseoul') {
+        showToast('✦ kiraseoul ✦');
+        flourishInvert();
+        typedBuffer = '';
+      }
+    }
+
+    konamiBuffer.push(e.key);
+    konamiBuffer = konamiBuffer.slice(-KONAMI.length);
+    if (konamiBuffer.length === KONAMI.length && konamiBuffer.every((k, i) => k === KONAMI[i])) {
+      triggerRain();
+      showToast('⌨ konami unlocked — enjoy the rain');
+      konamiBuffer = [];
+    }
+  });
+
+  // -- long-press "Columns ▾" (2s) --
+  (function () {
+    const btn = document.getElementById('columnsBtn');
+    let pressTimer = null;
+    const start = () => { pressTimer = setTimeout(() => { showToast('psst — kiraseoul again 👀'); flourishInvert(); }, 2000); };
+    const cancel = () => clearTimeout(pressTimer);
+    btn.addEventListener('mousedown', start);
+    btn.addEventListener('touchstart', start);
+    ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach((ev) => btn.addEventListener(ev, cancel));
+  })();
+
+  // -- tab title flip when you look away --
+  (function () {
+    const originalTitle = document.title;
+    window.addEventListener('blur', () => { document.title = '👀 come back...'; });
+    window.addEventListener('focus', () => { document.title = originalTitle; });
+  })();
+
+
+  shortlistFileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data, { type: 'array' });
+      const firstSheetName = wb.SheetNames[0];
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[firstSheetName]);
+      if (!rows.length) {
+        setStatus(shortlistStatus, 'This sheet has no data rows.', false);
+        shortlistRows = null;
+        return;
+      }
+      const neoCol = Object.keys(rows[0]).find(
+        (c) => c.toLowerCase().includes('neo') && c.toLowerCase().includes('id')
+      );
+      if (!neoCol) {
+        setStatus(shortlistStatus, 'No column header containing "neo" and "id" was found.', false);
+        shortlistRows = null;
+        return;
+      }
+      shortlistRows = rows;
+      shortlistRows._neoCol = neoCol;
+      setStatus(shortlistStatus, `Loaded — ${rows.length} rows, using column "${neoCol}".`, true);
+      document.getElementById('shortlistRowsStat').innerHTML = `<strong>${rows.length}</strong> shortlist rows loaded`;
+      maybeAutoRun();
+    } catch (err) {
+      setStatus(shortlistStatus, 'Could not read this file: ' + err.message, false);
+      shortlistRows = null;
+      updateRunEnabled();
+    }
+  });
+
+  document.getElementById('runMatchBtn').addEventListener('click', () => {
+    if (refWorkbook && shortlistRows) runMatch();
+  });
+
+  document.getElementById('sortModeSelect').addEventListener('change', () => {
+    if (fullResults.length) renderRows();
+  });
+
+  function runMatch() {
+    const neoCol = shortlistRows._neoCol;
+
+    const aByNeoId = new Map();
+    refWorkbook.sheetA.forEach((r) => {
+      const id = String(r['Neo ID'] ?? '').trim();
+      const name = String(r['Full Name'] ?? '').trim().toLowerCase();
+      if (id) aByNeoId.set(id, name);
+    });
+
+    const bByName = new Map();
+    refWorkbook.sheetB.forEach((r) => {
+      const name = String(r['name'] ?? '').trim().toLowerCase();
+      if (name) bByName.set(name, r);
+    });
+
+    fullResults = shortlistRows.map((row) => {
+      const neoId = String(row[neoCol] ?? '').trim();
+      const name = aByNeoId.get(neoId);
+      const matched_a = name !== undefined;
+      const bRow = matched_a ? bByName.get(name) : undefined;
+      const matched_b = bRow !== undefined;
+      const { 'reg..no': regNo, name: _dropName, degree: _dropDegree, ...restOfB } = bRow || {};
+
+      const rec = { neo_id: neoId, name: name || '', reg_no: regNo || '', ...restOfB };
+      const tier = matched_a && matched_b ? 2 : matched_a ? 1 : 0;
+      Object.defineProperty(rec, '_tier', { value: tier, enumerable: false });
+      Object.defineProperty(rec, '_fullMatch', { value: tier === 2, enumerable: false });
+      return rec;
+    });
+
+    fullResults.sort((a, b) => b._tier - a._tier);
+
+    hiddenCols = new Set();
+    filters = {};
+    COLUMN_DEFS.forEach((c) => (filters[c.key] = ''));
+    document.getElementById('sortModeSelect').value = 'default';
+
+    const matchedCgpas = fullResults.filter((r) => r._fullMatch).map((r) => parseFloat(r.cgpa)).filter((v) => !isNaN(v));
+    document.getElementById('minCgpaStat').innerHTML = matchedCgpas.length
+      ? `<strong>Min CGPA:</strong> ${Math.min(...matchedCgpas)}`
+      : '';
+
+    buildTableHead();
+    buildColumnsPanel();
+    renderRows();
+    resultsPanel.style.display = 'block';
+    emptyState.style.display = 'none';
+    runAnalysis();
+  }
+
+  function buildTableHead() {
+    headerRow.innerHTML = '';
+    filterRow.innerHTML = '';
+
+    const campusValues = [...new Set(fullResults.map((r) => r.campus).filter(Boolean))].sort();
+    const branchCodes = [...new Set(fullResults.map((r) => extractBranchCode(r.reg_no)).filter(Boolean))].sort();
+
+    COLUMN_DEFS.forEach((col) => {
+      if (hiddenCols.has(col.key)) return;
+
+      const th = document.createElement('th');
+      th.textContent = col.label;
+      th.addEventListener('click', () => {
+        hiddenCols.add(col.key);
+        buildTableHead();
+        buildColumnsPanel();
+        renderRows();
+      });
+      headerRow.appendChild(th);
+
+      const filterTh = document.createElement('th');
+
+      if (col.filter === 'gender') {
+        const select = document.createElement('select');
+        [['', 'All'], ['M', 'M'], ['F', 'F']].forEach(([val, label]) => {
+          const opt = document.createElement('option');
+          opt.value = val; opt.textContent = label;
+          select.appendChild(opt);
+        });
+        select.value = filters[col.key];
+        select.addEventListener('change', (e) => { filters[col.key] = e.target.value; renderRows(); });
+        filterTh.appendChild(select);
+      } else if (col.filter === 'campus') {
+        const select = document.createElement('select');
+        const allOpt = document.createElement('option');
+        allOpt.value = ''; allOpt.textContent = 'All';
+        select.appendChild(allOpt);
+        campusValues.forEach((v) => {
+          const opt = document.createElement('option');
+          opt.value = v; opt.textContent = v;
+          select.appendChild(opt);
+        });
+        select.value = filters[col.key];
+        select.addEventListener('change', (e) => { filters[col.key] = e.target.value; renderRows(); });
+        filterTh.appendChild(select);
+      } else if (col.filter === 'regBranch') {
+        const select = document.createElement('select');
+        const allOpt = document.createElement('option');
+        allOpt.value = ''; allOpt.textContent = 'All';
+        select.appendChild(allOpt);
+        branchCodes.forEach((v) => {
+          const opt = document.createElement('option');
+          opt.value = v; opt.textContent = v;
+          select.appendChild(opt);
+        });
+        select.value = filters[col.key];
+        select.addEventListener('change', (e) => { filters[col.key] = e.target.value; renderRows(); });
+        filterTh.appendChild(select);
+      } else {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'filter…';
+        input.value = filters[col.key];
+        input.addEventListener('input', (e) => { filters[col.key] = e.target.value.toLowerCase(); renderRows(); });
+        filterTh.appendChild(input);
+      }
+      filterRow.appendChild(filterTh);
+    });
+  }
+
+  function buildColumnsPanel() {
+    columnsPanel.innerHTML = '';
+    COLUMN_DEFS.forEach((col) => {
+      const label = document.createElement('label');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !hiddenCols.has(col.key);
+      cb.addEventListener('change', () => {
+        if (cb.checked) hiddenCols.delete(col.key); else hiddenCols.add(col.key);
+        buildTableHead();
+        buildColumnsPanel();
+        renderRows();
+      });
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(col.label));
+      columnsPanel.appendChild(label);
+    });
+  }
+
+  columnsBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    columnsPanel.classList.toggle('open');
+  });
+  document.addEventListener('click', () => columnsPanel.classList.remove('open'));
+  columnsPanel.addEventListener('click', (e) => e.stopPropagation());
+
+  function getFilteredRows() {
+    return fullResults.filter((row) =>
+      COLUMN_DEFS.every((col) => {
+        const f = filters[col.key];
+        if (!f) return true;
+        if (col.filter === 'gender') {
+          const wantMale = f === 'M';
+          return String(row.gender || '').toLowerCase() === (wantMale ? 'male' : 'female');
+        }
+        if (col.filter === 'campus') {
+          return String(row.campus || '').toLowerCase() === f.toLowerCase();
+        }
+        if (col.filter === 'regBranch') {
+          return extractBranchCode(row.reg_no) === f;
+        }
+        return String(row[col.key] ?? '').toLowerCase().includes(f);
+      })
+    );
+  }
+
+  function renderRows() {
+    const filtered = getFilteredRows();
+
+    const sortMode = document.getElementById('sortModeSelect').value;
+    if (sortMode === 'cgpa-desc' || sortMode === 'cgpa-asc') {
+      const dir = sortMode === 'cgpa-desc' ? -1 : 1;
+      filtered.sort((a, b) => {
+        const av = parseFloat(a.cgpa), bv = parseFloat(b.cgpa);
+        const aValid = !isNaN(av), bValid = !isNaN(bv);
+        if (!aValid && !bValid) return 0;
+        if (!aValid) return 1;   // blanks always pushed to the end
+        if (!bValid) return -1;
+        return dir * (av - bv);
+      });
+    }
+
+    resultBody.innerHTML = '';
+
+    if (filtered.length === 0) {
+      const visibleCount = COLUMN_DEFS.filter((c) => !hiddenCols.has(c.key)).length;
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = visibleCount || 1;
+      td.style.textAlign = 'center';
+      td.style.fontStyle = 'italic';
+      td.style.color = '#666';
+      const jokes = [
+        'Nothing here. Even kiraseoul can\'t find these.',
+        'Zero rows. The filters won this round.',
+        'Empty. Try loosening a filter or two.',
+      ];
+      td.textContent = jokes[Math.floor(Math.random() * jokes.length)];
+      tr.appendChild(td);
+      resultBody.appendChild(tr);
+    }
+
+    filtered.forEach((row) => {
+      const tr = document.createElement('tr');
+      if (!row._fullMatch) tr.className = 'unmatched';
+
+      COLUMN_DEFS.forEach((col) => {
+        if (hiddenCols.has(col.key)) return;
+        const td = document.createElement('td');
+        const val = row[col.key] ?? '';
+
+        if (col.key === 'name') {
+          const g = String(row.gender || '').toLowerCase();
+          if (g === 'male') td.className = 'name-male';
+          else if (g === 'female') td.className = 'name-female';
+        }
+
+        if (col.render === 'link' && val) {
+          const a = document.createElement('a');
+          a.href = val;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.textContent = val;
+          td.appendChild(a);
+        } else {
+          td.textContent = val;
+          td.title = val;
+        }
+        tr.appendChild(td);
+      });
+      resultBody.appendChild(tr);
+    });
+
+    const matchedCount = filtered.filter((r) => r._fullMatch).length;
+    resultMeta.innerHTML = `<strong>${filtered.length}</strong> shown / <strong>${fullResults.length}</strong> total — <strong>${matchedCount}</strong> matched, <strong>${filtered.length - matchedCount}</strong> unmatched <span class="muted">(unmatched rows in bold italic, below matches)</span>`;
+    downloadBtn.disabled = filtered.length === 0;
+  }
+
+  function downloadResult() {
+    const filtered = getFilteredRows();
+    const matched = filtered.filter((r) => r._fullMatch);
+    const unmatched = filtered.filter((r) => !r._fullMatch);
+
+    const wb = XLSX.utils.book_new();
+    wb.Props = { Author: 'kiraseoul', Title: 'NEO ID Match Result' };
+    [['Matched', matched], ['Unmatched', unmatched]].forEach(([sheetName, rows]) => {
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
+      ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+      // quiet watermark, tucked a few columns past the used data
+      const wmCol = range.e.c + 3;
+      const wmAddr = XLSX.utils.encode_cell({ r: 0, c: wmCol });
+      ws[wmAddr] = { t: 's', v: 'kiraseoul' };
+      ws['!ref'] = XLSX.utils.encode_range({ s: range.s, e: { r: range.e.r, c: wmCol } });
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    });
+    XLSX.writeFile(wb, 'match_result.xlsx');
+  }
+
+  // ---------------- Shortlist Criteria Checker (deterministic, no ML) ----------------
+  const CGPA_BANDS = [
+    { label: '<8.0', test: (v) => v < 8.0 },
+    { label: '8.0–8.49', test: (v) => v >= 8.0 && v < 8.5 },
+    { label: '8.5–8.99', test: (v) => v >= 8.5 && v < 9.0 },
+    { label: '9.0–9.49', test: (v) => v >= 9.0 && v < 9.5 },
+    { label: '9.5+', test: (v) => v >= 9.5 },
+  ];
+
+  function normalizeBranch(reg_no, branchText) {
+    const code = extractBranchCode(reg_no);
+    const text = String(branchText || '').toLowerCase().trim();
+    if (code === 'bps') return 'CSE - Cyber Physical Systems';
+    if (code === 'brs') return 'CSE - AI & Robotics';
+    if (code === 'bds') return 'CSE - Data Science';
+    if (code === 'bai' || /\bai\b|\bml\b|a\.i|m\.l/.test(text)) return 'CSE - AI & ML';
+    if (code === 'bce') return 'CSE Core';
+    if (text.includes('computer science') || text.includes('cse')) return 'CSE (unspecified)';
+    return 'Other/Unclear';
+  }
+
+  function numOrNull(v) {
+    const n = parseFloat(v);
+    return typeof n === 'number' && !isNaN(n) ? n : null;
+  }
+
+  function pearson(xs, ys) {
+    const n = xs.length;
+    if (n < 2) return null;
+    const mx = xs.reduce((a, b) => a + b, 0) / n;
+    const my = ys.reduce((a, b) => a + b, 0) / n;
+    let num = 0, dx2 = 0, dy2 = 0;
+    for (let i = 0; i < n; i++) {
+      const dx = xs[i] - mx, dy = ys[i] - my;
+      num += dx * dy; dx2 += dx * dx; dy2 += dy * dy;
+    }
+    const denom = Math.sqrt(dx2 * dy2);
+    return denom === 0 ? null : num / denom;
+  }
+
+  function computeGroupStats(rows, groupFn, denom) {
+    const groups = {};
+    rows.forEach((r) => {
+      const key = groupFn(r);
+      if (!groups[key]) groups[key] = { category: key, count: 0, cgpas: [] };
+      groups[key].count += 1;
+      if (r.cgpa !== null) groups[key].cgpas.push(r.cgpa);
+    });
+    return Object.values(groups).map((g) => ({
+      category: g.category,
+      count: g.count,
+      pct: denom ? +(100 * g.count / denom).toFixed(1) : 0,
+      min_cgpa: g.cgpas.length ? Math.min(...g.cgpas) : null,
+      max_cgpa: g.cgpas.length ? Math.max(...g.cgpas) : null,
+      mean_cgpa: g.cgpas.length ? +(g.cgpas.reduce((a, b) => a + b, 0) / g.cgpas.length).toFixed(2) : null,
+    }));
+  }
+
+  function computeStats(shortlisted, unmatched) {
+    const withCgpa = shortlisted.filter((s) => s.cgpa !== null);
+    const cgpaVals = withCgpa.map((s) => s.cgpa);
+    const cgpaStat = cgpaVals.length
+      ? { count: cgpaVals.length, min: Math.min(...cgpaVals), max: Math.max(...cgpaVals), mean: +(cgpaVals.reduce((a, b) => a + b, 0) / cgpaVals.length).toFixed(2) }
+      : { count: 0, min: null, max: null, mean: null };
+
+    const cgpa_bands = CGPA_BANDS.map((band) => {
+      const inBand = cgpaVals.filter(band.test);
+      return { label: band.label, count: inBand.length, pct: cgpaVals.length ? +(100 * inBand.length / cgpaVals.length).toFixed(1) : 0 };
+    });
+
+    const branchOf = (r) => normalizeBranch(r.reg_no, r.branch);
+    const branch = computeGroupStats(shortlisted, branchOf, shortlisted.length);
+    const gender = computeGroupStats(shortlisted, (r) => (r.gender || 'unknown'), shortlisted.length);
+
+    const bxgKey = {};
+    shortlisted.forEach((r) => {
+      const b = branchOf(r), g = r.gender || 'unknown';
+      const key = b + '|' + g;
+      bxgKey[key] = (bxgKey[key] || 0) + 1;
+    });
+    const branch_x_gender = Object.entries(bxgKey).map(([key, count]) => {
+      const [branch_cat, gender_cat] = key.split('|');
+      return { branch: branch_cat, gender: gender_cat, count };
+    });
+
+    const data_sanity = { warnings: [] };
+    const cgpaOOR = shortlisted.filter((s) => s.cgpa !== null && (s.cgpa < 0 || s.cgpa > 10));
+    if (cgpaOOR.length) data_sanity.warnings.push(`${cgpaOOR.length} row(s) with CGPA outside 0–10`);
+    const tenthOOR = shortlisted.filter((s) => s.tenth_pct !== null && (s.tenth_pct < 0 || s.tenth_pct > 100));
+    if (tenthOOR.length) data_sanity.warnings.push(`${tenthOOR.length} row(s) with 10th% outside 0–100`);
+    const twelfthOOR = shortlisted.filter((s) => s.twelfth_pct !== null && (s.twelfth_pct < 0 || s.twelfth_pct > 100));
+    if (twelfthOOR.length) data_sanity.warnings.push(`${twelfthOOR.length} row(s) with 12th% outside 0–100`);
+    const regCounts = {};
+    shortlisted.forEach((s) => { if (s.reg_no) regCounts[s.reg_no] = (regCounts[s.reg_no] || 0) + 1; });
+    const dupRegNos = Object.values(regCounts).filter((c) => c > 1).length;
+    if (dupRegNos) data_sanity.warnings.push(`${dupRegNos} duplicate Reg No value(s) in shortlisted`);
+    const missingGender = shortlisted.filter((s) => !s.gender).length;
+    if (missingGender) data_sanity.warnings.push(`${missingGender} row(s) missing gender`);
+
+    function corrPair(fieldA, fieldB) {
+      const pairs = shortlisted.filter((s) => s[fieldA] !== null && s[fieldB] !== null && s[fieldA] >= 0 && s[fieldA] <= (fieldA === 'cgpa' ? 10 : 100) && s[fieldB] >= 0 && s[fieldB] <= 100);
+      const r = pearson(pairs.map((p) => p[fieldA]), pairs.map((p) => p[fieldB]));
+      return { r: r !== null ? +r.toFixed(3) : null, n: pairs.length };
+    }
+    const correlation = {
+      cgpa_vs_tenth: corrPair('cgpa', 'tenth_pct'),
+      cgpa_vs_twelfth: corrPair('cgpa', 'twelfth_pct'),
+    };
+
+    // baseline comparison: only if unmatched has cgpa/branch/gender populated for a meaningful share
+    const unmatchedWithFields = unmatched.filter((u) => u.cgpa !== undefined && u.cgpa !== null);
+    let baseline_comparison = null;
+    if (unmatched.length && unmatchedWithFields.length / unmatched.length >= 0.3 && unmatchedWithFields.length >= 10) {
+      const uCgpaVals = unmatchedWithFields.map((u) => u.cgpa).filter((v) => v !== null);
+      const uMean = uCgpaVals.length ? uCgpaVals.reduce((a, b) => a + b, 0) / uCgpaVals.length : null;
+      baseline_comparison = {
+        applicant_pool_cgpa_mean: uMean !== null ? +uMean.toFixed(2) : null,
+        shortlist_cgpa_mean: cgpaStat.mean,
+        cgpa_mean_diff: uMean !== null && cgpaStat.mean !== null ? +(cgpaStat.mean - uMean).toFixed(2) : null,
+      };
+    }
+
+    return {
+      cgpa: cgpaStat,
+      cgpa_bands,
+      branch,
+      gender,
+      branch_x_gender,
+      data_sanity,
+      correlation,
+      baseline_comparison,
+      confidence: baseline_comparison ? 'baseline-comparison' : 'descriptive-only',
+    };
+  }
+
+  function checkCandidate(candidate, shortlisted, stats) {
+    const branch_normalized = normalizeBranch(candidate.reg_no, candidate.branch_text);
+    const branchEntry = stats.branch.find((b) => b.category === branch_normalized);
+    const branch_precedent = branchEntry ? branchEntry.count : 0;
+
+    const cgpaVals = shortlisted.filter((s) => s.cgpa !== null).map((s) => s.cgpa);
+    const cgpa = numOrNull(candidate.cgpa);
+    const cgpa_vs_floor = cgpa !== null && stats.cgpa.min !== null ? (cgpa >= stats.cgpa.min ? 'at/above floor' : 'below floor') : 'no baseline data available';
+    const cgpa_percentile = cgpa !== null && cgpaVals.length
+      ? +(100 * cgpaVals.filter((v) => v <= cgpa).length / cgpaVals.length).toFixed(1)
+      : null;
+
+    const genderEntry = stats.gender.find((g) => g.category === String(candidate.gender || '').toLowerCase());
+    const gender_share_in_shortlist = genderEntry ? genderEntry.pct : 0;
+
+    return { branch_normalized, branch_precedent, cgpa_vs_floor, cgpa_percentile, gender_share_in_shortlist };
+  }
+
+  let analysisState = null; // { shortlisted, unmatched, stats }
+  let charts = {};
+
+  function toShortlistedRecord(r) {
+    return {
+      neo_id: r.neo_id, name: r.name, reg_no: r.reg_no,
+      email: r['email id (personal id)'], phone: r['phone no'],
+      gender: String(r.gender || '').toLowerCase(),
+      branch: r.brach,
+      cgpa: numOrNull(r.cgpa), tenth_pct: numOrNull(r['10th']), twelfth_pct: numOrNull(r['12th']),
+      resume_url: r['resume link'], campus: r.campus,
+    };
+  }
+
+  function toUnmatchedRecord(r) {
+    return {
+      neo_id: r.neo_id,
+      name: r.name || undefined,
+      reg_no: r.reg_no || undefined,
+      cgpa: null, branch: undefined, gender: undefined,
+    };
+  }
+
+  function runAnalysis() {
+    const shortlisted = fullResults.filter((r) => r._fullMatch).map(toShortlistedRecord);
+    const unmatched = fullResults.filter((r) => !r._fullMatch).map(toUnmatchedRecord);
+    const stats = computeStats(shortlisted, unmatched);
+    analysisState = { shortlisted, unmatched, stats };
+    renderAnalysis();
+  }
+
+  function destroyChart(id) {
+    if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  }
+
+  function renderAnalysis() {
+    document.getElementById('analysisEmpty').style.display = 'none';
+    document.getElementById('analysisContent').style.display = 'block';
+
+    const { shortlisted, stats } = analysisState;
+
+    const banner = document.getElementById('confidenceBanner');
+    if (stats.confidence === 'descriptive-only') {
+      banner.textContent = 'Descriptive-only — not a proven accept/reject rule.';
+    } else {
+      banner.textContent = 'Baseline-comparison — checked against applicant-pool data.';
+    }
+
+    const summaryStats = document.getElementById('summaryStats');
+    summaryStats.innerHTML = '';
+    const boxes = [
+      ['Shortlisted', shortlisted.length],
+      ['CGPA min', stats.cgpa.min ?? '—'],
+      ['CGPA max', stats.cgpa.max ?? '—'],
+      ['CGPA mean', stats.cgpa.mean ?? '—'],
+    ];
+    boxes.forEach(([label, value]) => {
+      const div = document.createElement('div');
+      div.className = 'stat-box';
+      div.innerHTML = `<div class="stat-label">${label}</div><div class="stat-value">${value}</div>`;
+      summaryStats.appendChild(div);
+    });
+
+    // CGPA bands (bar)
+    destroyChart('cgpaBands');
+    charts.cgpaBands = new Chart(document.getElementById('chartCgpaBands'), {
+      type: 'bar',
+      data: {
+        labels: stats.cgpa_bands.map((b) => b.label),
+        datasets: [{ data: stats.cgpa_bands.map((b) => b.count), backgroundColor: '#000000' }],
+      },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+    });
+
+    // Gender split (pie)
+    destroyChart('gender');
+    charts.gender = new Chart(document.getElementById('chartGender'), {
+      type: 'pie',
+      data: {
+        labels: stats.gender.map((g) => g.category),
+        datasets: [{ data: stats.gender.map((g) => g.count), backgroundColor: stats.gender.map((g) => g.category === 'male' ? '#bcdcff' : g.category === 'female' ? '#ffc9dd' : '#cccccc') }],
+      },
+      options: { plugins: { legend: { position: 'bottom', labels: { font: { family: 'Cascadia Code' } } } } },
+    });
+
+    // Branch distribution (bar)
+    destroyChart('branch');
+    charts.branch = new Chart(document.getElementById('chartBranch'), {
+      type: 'bar',
+      data: {
+        labels: stats.branch.map((b) => b.category),
+        datasets: [{ data: stats.branch.map((b) => b.count), backgroundColor: '#000000' }],
+      },
+      options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } },
+    });
+
+    // CGPA by branch mean (bar)
+    destroyChart('cgpaByBranch');
+    const branchWithCgpa = stats.branch.filter((b) => b.mean_cgpa !== null);
+    const cgpaByBranchVals = branchWithCgpa.map((b) => b.mean_cgpa);
+    const axisMin = cgpaByBranchVals.length ? Math.floor(Math.min(...cgpaByBranchVals)) : 0;
+    const axisMax = cgpaByBranchVals.length ? Math.ceil(Math.max(...cgpaByBranchVals)) : 10;
+    charts.cgpaByBranch = new Chart(document.getElementById('chartCgpaByBranch'), {
+      type: 'bar',
+      data: {
+        labels: branchWithCgpa.map((b) => b.category),
+        datasets: [{ data: cgpaByBranchVals, backgroundColor: '#666666' }],
+      },
+      options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { min: axisMin, max: axisMax } } },
+    });
+
+    // Branch x Gender table
+    const bgTable = document.getElementById('branchGenderTable');
+    const genders = [...new Set(stats.branch_x_gender.map((r) => r.gender))];
+    const branches = [...new Set(stats.branch_x_gender.map((r) => r.branch))];
+    let html = '<thead><tr><th>Branch</th>' + genders.map((g) => `<th>${g}</th>`).join('') + '</tr></thead><tbody>';
+    branches.forEach((b) => {
+      html += `<tr><td>${b}</td>`;
+      genders.forEach((g) => {
+        const entry = stats.branch_x_gender.find((r) => r.branch === b && r.gender === g);
+        html += `<td>${entry ? entry.count : 0}</td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody>';
+    bgTable.innerHTML = html;
+
+    // Correlation
+    const corrBox = document.getElementById('correlationBox');
+    const fmtCorr = (c) => c.r !== null ? `r = ${c.r} (n=${c.n})` : `not enough data (n=${c.n})`;
+    corrBox.innerHTML = `<div>CGPA vs 10th%: ${fmtCorr(stats.correlation.cgpa_vs_tenth)}</div><div>CGPA vs 12th%: ${fmtCorr(stats.correlation.cgpa_vs_twelfth)}</div>`;
+  }
+
+  function buildLlmPrompt(statsJson) {
+    return `You're looking at deterministic stats computed from a company's SHORTLISTED candidates only (no applicant-pool baseline, so nothing here is a proven rule). Based on the JSON below — CGPA distribution/bands, branch and gender breakdowns, branch×gender cross-tab, and CGPA-vs-marks correlations — infer the most plausible shortlisting criteria this company likely used (CGPA floor, favored branches, any gender skew, anything the correlations suggest). State your confidence and call out anywhere the data's too thin to conclude much.
+
+${JSON.stringify(statsJson, null, 2)}`;
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+
+  document.getElementById('copyJsonPromptBtn').addEventListener('click', async () => {
+    if (!analysisState) return;
+    const btn = document.getElementById('copyJsonPromptBtn');
+    const text = buildLlmPrompt(analysisState.stats);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      fallbackCopy(text);
+    }
+    const original = btn.textContent;
+    btn.textContent = 'Copied ✓';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  });
+
+  document.getElementById('checkBtn').addEventListener('click', () => {
+    if (!analysisState) return;
+    const candidate = {
+      cgpa: document.getElementById('checkCgpa').value,
+      gender: document.getElementById('checkGender').value,
+      reg_no: document.getElementById('checkRegNo').value,
+      branch_text: document.getElementById('checkBranchText').value,
+    };
+    const result = checkCandidate(candidate, analysisState.shortlisted, analysisState.stats);
+    const box = document.getElementById('checkerResult');
+    box.className = 'checker-result show';
+    box.innerHTML = `
+      <div><strong>Branch normalized:</strong> ${result.branch_normalized}</div>
+      <div><strong>Branch precedent:</strong> ${result.branch_precedent} shortlisted candidate(s) in this branch</div>
+      <div><strong>CGPA vs floor:</strong> ${result.cgpa_vs_floor}</div>
+      <div><strong>CGPA percentile:</strong> ${result.cgpa_percentile !== null ? result.cgpa_percentile + '%' : 'n/a'}</div>
+      <div><strong>Gender share in shortlist:</strong> ${result.gender_share_in_shortlist}%</div>
+      <div style="margin-top:8px; font-weight:600;">${analysisState.stats.confidence === 'descriptive-only' ? 'Descriptive comparison only — not a pass/fail verdict.' : 'Baseline-comparison mode.'}</div>
+    `;
+  });
+
+  downloadBtn.addEventListener('click', downloadResult);
+</script>
+
+</body>
+</html>
