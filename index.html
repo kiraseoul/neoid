@@ -878,7 +878,7 @@
     if (isAutoLoad) {
       document.getElementById('refSlot').style.display = 'none';
       const note = document.getElementById('refLoadedNote');
-      note.textContent = `Reference data loaded (${sheetA.length + sheetB.length} rows). Just drop your shortlist below.`;
+      note.textContent = `Reference data loaded (${sheetA.length + sheetB.length} rows).`;
       note.style.display = 'block';
       document.getElementById('changeRefBtn').style.display = 'inline';
     }
@@ -1098,7 +1098,7 @@
   // -- tab title flip when you look away --
   (function () {
     const originalTitle = document.title;
-    window.addEventListener('blur', () => { document.title = '👀 come back...'; });
+    window.addEventListener('blur', () => { document.title = 'come back,'; });
     window.addEventListener('focus', () => { document.title = originalTitle; });
   })();
 
