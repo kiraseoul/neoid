@@ -317,12 +317,6 @@
     flex-wrap: wrap;
   }
 
-  .find-hint {
-    font-size: 11px;
-    color: var(--muted);
-    margin: 0 0 10px 0;
-  }
-
   #findInput {
     width: 100%;
     min-height: 240px;
@@ -1013,9 +1007,8 @@
 
 <div class="tab-panel" id="tabFind">
   <div class="panel">
-    <h2 class="panel-title">Paste Neo IDs</h2>
-    <p class="find-hint">One per line. No file, no column headers — just the IDs.</p>
-    <textarea id="findInput" spellcheck="false" placeholder="K2M0C8D5&#10;S0Q3B1N6&#10;C3C8N0S1&#10;H9B9S6B3&#10;B8E4N2R1&#10;S4R2D9S3"></textarea>
+    <h2 class="panel-title">paste id</h2>
+    <textarea id="findInput" spellcheck="false" placeholder="xxxxxx&#10;xxxxxx"></textarea>
     <div class="actions-row">
       <button id="findRunBtn" type="button">Trace these</button>
       <button id="findClearBtn" type="button">Clear</button>
