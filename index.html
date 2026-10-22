@@ -35,10 +35,10 @@
     --male-bg: #eaf3ff;
     --female-bg: #ffe9f1;
     /* drifting page backdrop: greyscale, lighter end of the ramp */
-    --grad-a: #8e8e8e;
+    --grad-a: #6a6a6a;
     --grad-b: #ffffff;
-    --grad-c: #6f6f6f;
-    --grad-d: #cfcfcf;
+    --grad-c: #4a4a4a;
+    --grad-d: #b4b4b4;
     --row-wash: rgba(0, 0, 0, 0.055);
     --muted: #6b6b6b;
     --high-bg: #e4f3e8;
@@ -52,10 +52,10 @@
     --muted-border: #444444;
     --male-bg: #1a5fb4;
     --female-bg: #c2185b;
-    --grad-a: #5a5a5a;
+    --grad-a: #7e7e7e;
     --grad-b: #000000;
-    --grad-c: #6e6e6e;
-    --grad-d: #2a2a2a;
+    --grad-c: #949494;
+    --grad-d: #3c3c3c;
     --row-wash: rgba(255, 255, 255, 0.07);
     --muted: #9a9a9a;
     --high-bg: #14532d;
@@ -63,9 +63,9 @@
   }
 
   @keyframes backdropDrift {
-    0%   { transform: translate3d(-8%, -5%, 0) scale(1.05); }
-    50%  { transform: translate3d(8%,   6%, 0) scale(1.25); }
-    100% { transform: translate3d(-5%,  8%, 0) scale(1.05); }
+    0%   { transform: translate3d(-14%, -9%, 0) scale(1.00); }
+    50%  { transform: translate3d(14%,  11%, 0) scale(1.35); }
+    100% { transform: translate3d(-9%,  14%, 0) scale(1.00); }
   }
 
   @keyframes backdropSwirl {
@@ -81,7 +81,10 @@
     inset: -35%;
     z-index: -1;
     pointer-events: none;
+    /* own compositor layer: the drift never repaints page content */
     will-change: transform;
+    transform: translateZ(0);
+    contain: layout paint;
   }
 
   body::before {
@@ -90,24 +93,22 @@
       radial-gradient(34% 34% at 80% 24%, var(--grad-b), transparent 60%),
       radial-gradient(46% 46% at 62% 82%, var(--grad-c), transparent 60%),
       radial-gradient(30% 30% at 30% 70%, var(--grad-d), transparent 60%);
-    filter: blur(70px);
-    animation: backdropDrift 14s ease-in-out infinite alternate;
+    animation: backdropDrift 11s ease-in-out infinite alternate;
   }
 
   body::after {
     background:
       radial-gradient(40% 40% at 72% 42%, var(--grad-c), transparent 64%),
       radial-gradient(34% 34% at 24% 58%, var(--grad-a), transparent 64%);
-    filter: blur(95px);
-    opacity: 0.85;
-    animation: backdropSwirl 32s linear infinite;
+    opacity: 0.95;
+    animation: backdropSwirl 24s linear infinite;
   }
 
   @media (prefers-reduced-motion: reduce) {
     *, body::before, body::after { animation: none !important; }
   }
 
-  html, body { transition: background 0.15s ease, color 0.15s ease; }
+  html { transition: background 0.15s ease, color 0.15s ease; }
 
   * { box-sizing: border-box; }
 
@@ -132,7 +133,7 @@
     cursor: pointer;
   }
 
-  /* only NOX glitches - the author never does */
+  /* the wordmark and the author both tear */
   .glitch {
     position: relative;
     display: inline-block;
@@ -158,6 +159,14 @@
     color: var(--fg);
     animation: glitchBottom 2.7s steps(2, end) infinite;
   }
+
+  /* desynced from the wordmark so the two never tear on the same frame */
+  .creator-name.glitch::before { animation-duration: 4.1s; animation-delay: 0.7s; }
+  .creator-name.glitch::after  { animation-duration: 3.3s; animation-delay: 1.3s; }
+
+  /* the badge inverts on hover, so the ghost copies have to invert with it */
+  .creator-badge:hover .glitch::after  { color: var(--bg); }
+  .creator-badge:hover .glitch::before { color: var(--bg); opacity: 0.5; }
 
   @keyframes glitchTop {
     0%, 92%, 100% { clip-path: inset(0 0 100% 0); transform: translate(0, 0); }
@@ -244,12 +253,15 @@
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
 
+  /* the results table can run to thousands of rows - keep offscreen work out of the tab switch */
+  .table-wrap { content-visibility: auto; contain-intrinsic-size: 1px 60vh; }
+
   .placeholder-note {
     padding: 24px;
     border: 1px dashed var(--muted-border);
     text-align: center;
     font-weight: 400;
-    color: #444;
+    color: var(--muted);
   }
 
   .panel {
@@ -348,7 +360,7 @@
   .upload-slot .hint {
     font-weight: 400;
     font-size: 11px;
-    color: #444;
+    color: var(--muted);
     margin-top: 4px;
   }
 
@@ -380,7 +392,7 @@
     font-weight: 400;
     text-transform: none;
     text-decoration: underline;
-    color: #555555;
+    color: var(--muted);
     cursor: pointer;
     letter-spacing: normal;
   }
@@ -427,7 +439,7 @@
     font-weight: 600;
   }
 
-  .result-meta .muted { font-weight: 400; color: #444; }
+  .result-meta .muted { font-weight: 400; color: var(--muted); }
 
   .columns-dropdown-wrap { position: relative; }
 
@@ -547,7 +559,7 @@
     padding: 24px;
     text-align: center;
     font-weight: 400;
-    color: #444;
+    color: var(--muted);
     border: 1px dashed var(--muted-border);
   }
 
@@ -583,10 +595,12 @@
   }
 
   .stat-box .stat-label {
-    font-size: 10px;
+    font-size: 11px;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: #444;
+    color: var(--fg);
+    opacity: 0.85;
     margin-bottom: 4px;
   }
 
@@ -630,7 +644,7 @@
 
   .warn-list { font-size: 12px; padding-left: 18px; margin: 6px 0 0 0; }
   .warn-list li { margin-bottom: 4px; }
-  .warn-none { font-size: 12px; color: #444; }
+  .warn-none { font-size: 12px; color: var(--muted); }
 
   .checker-form {
     display: flex;
@@ -675,7 +689,7 @@
     bottom: 6px;
     right: 10px;
     font-size: 10px;
-    color: #bbbbbb;
+    color: var(--muted);
     letter-spacing: 0.03em;
     user-select: none;
     pointer-events: none;
@@ -721,7 +735,7 @@
 
   .credits-panel.show { display: block; }
   .credits-panel .cp-title { font-weight: 700; margin-bottom: 6px; }
-  .credits-panel .cp-sub { color: #666; font-size: 10px; margin-top: 8px; }
+  .credits-panel .cp-sub { color: var(--muted); font-size: 10px; margin-top: 8px; }
 
   @keyframes eggFall {
     from { transform: translateY(-24px); opacity: 1; }
@@ -769,7 +783,7 @@
     font-size: 10px;
     font-style: italic;
     color: var(--fg);
-    opacity: 0.85;
+    opacity: 0.95;
     width: fit-content;
     max-width: 220px;
     text-align: center;
@@ -812,13 +826,6 @@
     line-height: 1;
   }
 
-  .creator-tag {
-    font-size: 11px;
-    font-weight: 400;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    opacity: 0.7;
-  }
 
   .thanks-note {
     max-width: 520px;
@@ -844,7 +851,7 @@
     .header-row { flex-direction: column; align-items: stretch; }
     .header-right { flex-direction: column; align-items: flex-start; }
     .quote-box { max-width: none; text-align: left; }
-    /* only NOX glitches - the author never does */
+    /* the wordmark and the author both tear */
   .glitch {
     position: relative;
     display: inline-block;
@@ -938,8 +945,7 @@
     <div class="quote-box" id="consolingBanner"></div>
     <div class="badge-row">
       <a class="creator-badge" href="https://github.com/kiraseoul/" target="_blank" rel="noopener">
-        <span class="creator-name">kiraseoul</span>
-        <span class="creator-tag">the dark creator</span>
+        <span class="creator-name glitch" data-text="kiraseoul">kiraseoul</span>
       </a>
       <button id="themeToggle" class="theme-toggle-fixed" type="button" aria-label="Toggle theme">
         <svg id="iconSun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1009,7 +1015,7 @@
   <div class="panel">
     <h2 class="panel-title">Paste Neo IDs</h2>
     <p class="find-hint">One per line. No file, no column headers — just the IDs.</p>
-    <textarea id="findInput" spellcheck="false" placeholder="U4T9X7O4&#10;E3O7X7B0&#10;I3E4W0E0"></textarea>
+    <textarea id="findInput" spellcheck="false" placeholder="K2M0C8D5&#10;S0Q3B1N6&#10;C3C8N0S1&#10;H9B9S6B3&#10;B8E4N2R1&#10;S4R2D9S3"></textarea>
     <div class="actions-row">
       <button id="findRunBtn" type="button">Trace these</button>
       <button id="findClearBtn" type="button">Clear</button>
@@ -1209,6 +1215,15 @@
       refWorkbook = null;
       return;
     }
+    // an older reference file parses fine but maps nothing but the ID, which
+    // silently produced rows with every other column blank
+    const headers = (XLSX.utils.sheet_to_json(sheet, { header: 1 })[0] || []).map((h) => String(h).trim());
+    const missing = ['Neo ID', 'Name', 'Reg No'].filter((h) => !headers.includes(h));
+    if (missing.length) {
+      setStatus(refStatus, `This workbook is the wrong shape - missing column(s): ${missing.join(', ')}.`, false);
+      refWorkbook = null;
+      return;
+    }
     const byNeoId = new Map();
     XLSX.utils.sheet_to_json(sheet).forEach((raw) => {
       const rec = {};
@@ -1238,7 +1253,7 @@
 
   async function tryAutoLoadReference() {
     try {
-      const res = await fetch(REF_FILENAME);
+      const res = await fetch(REF_FILENAME, { cache: 'no-cache' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.arrayBuffer();
       parseRefWorkbook(data, `Auto-loaded "${REF_FILENAME}"`, true);
