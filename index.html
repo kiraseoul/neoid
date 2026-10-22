@@ -4,16 +4,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NEO ID Matcher</title>
+<title>traceNOX</title>
 <link rel="icon" type="image/png" href="favicon.png">
-<meta name="description" content="Find who got shortlisted.">
+<meta name="description" content="are you shortlisted, why? why not?">
 <meta name="theme-color" content="#000000">
 
 <!-- Open Graph -->
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="NEO ID Matcher">
-<meta property="og:title" content="NEO ID Matcher">
-<meta property="og:description" content="Find who got shortlisted.">
+<meta property="og:site_name" content="traceNOX">
+<meta property="og:title" content="traceNOX">
+<meta property="og:description" content="are you shortlisted, why? why not?">
 <meta property="og:url" content="https://kiraseoul.github.io/neoid/">
 <meta property="og:image" content="https://kiraseoul.github.io/neoid/preview.png">
 <meta property="og:image:width" content="1200">
@@ -21,8 +21,8 @@
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="NEO ID Matcher">
-<meta name="twitter:description" content="Find who got shortlisted.">
+<meta name="twitter:title" content="traceNOX">
+<meta name="twitter:description" content="are you shortlisted, why? why not?">
 <meta name="twitter:image" content="https://kiraseoul.github.io/neoid/preview.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
@@ -34,6 +34,15 @@
     --muted-border: #cccccc;
     --male-bg: #eaf3ff;
     --female-bg: #ffe9f1;
+    /* drifting page backdrop: greyscale, lighter end of the ramp */
+    --grad-a: #8e8e8e;
+    --grad-b: #ffffff;
+    --grad-c: #6f6f6f;
+    --grad-d: #cfcfcf;
+    --row-wash: rgba(0, 0, 0, 0.055);
+    --muted: #6b6b6b;
+    --high-bg: #e4f3e8;
+    --high-fg: #14532d;
   }
 
   html[data-theme="dark"] {
@@ -43,6 +52,59 @@
     --muted-border: #444444;
     --male-bg: #1a5fb4;
     --female-bg: #c2185b;
+    --grad-a: #5a5a5a;
+    --grad-b: #000000;
+    --grad-c: #6e6e6e;
+    --grad-d: #2a2a2a;
+    --row-wash: rgba(255, 255, 255, 0.07);
+    --muted: #9a9a9a;
+    --high-bg: #14532d;
+    --high-fg: #bbf7d0;
+  }
+
+  @keyframes backdropDrift {
+    0%   { transform: translate3d(-8%, -5%, 0) scale(1.05); }
+    50%  { transform: translate3d(8%,   6%, 0) scale(1.25); }
+    100% { transform: translate3d(-5%,  8%, 0) scale(1.05); }
+  }
+
+  @keyframes backdropSwirl {
+    from { transform: rotate(0deg)   scale(1.25); }
+    to   { transform: rotate(360deg) scale(1.25); }
+  }
+
+  /* two blurred greyscale layers drifting against each other, behind everything */
+  body::before,
+  body::after {
+    content: '';
+    position: fixed;
+    inset: -35%;
+    z-index: -1;
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  body::before {
+    background:
+      radial-gradient(38% 38% at 18% 22%, var(--grad-a), transparent 60%),
+      radial-gradient(34% 34% at 80% 24%, var(--grad-b), transparent 60%),
+      radial-gradient(46% 46% at 62% 82%, var(--grad-c), transparent 60%),
+      radial-gradient(30% 30% at 30% 70%, var(--grad-d), transparent 60%);
+    filter: blur(70px);
+    animation: backdropDrift 14s ease-in-out infinite alternate;
+  }
+
+  body::after {
+    background:
+      radial-gradient(40% 40% at 72% 42%, var(--grad-c), transparent 64%),
+      radial-gradient(34% 34% at 24% 58%, var(--grad-a), transparent 64%);
+    filter: blur(95px);
+    opacity: 0.85;
+    animation: backdropSwirl 32s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, body::before, body::after { animation: none !important; }
   }
 
   html, body { transition: background 0.15s ease, color 0.15s ease; }
@@ -58,13 +120,57 @@
     font-size: 13px;
   }
 
-  body { padding: 18px; }
+  /* html keeps the base colour, body stays clear so the backdrop shows */
+  body { padding: 18px; background: transparent; }
 
   h1 {
-    font-size: 22px;
+    font-size: 46px;
     font-weight: 700;
-    margin: 0 0 4px 0;
-    letter-spacing: -0.01em;
+    margin: 0 0 2px 0;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  /* only NOX glitches - the author never does */
+  .glitch {
+    position: relative;
+    display: inline-block;
+  }
+
+  .glitch::before,
+  .glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .glitch::before {
+    color: var(--muted);
+    animation: glitchTop 3.2s steps(2, end) infinite;
+  }
+
+  .glitch::after {
+    color: var(--fg);
+    animation: glitchBottom 2.7s steps(2, end) infinite;
+  }
+
+  @keyframes glitchTop {
+    0%, 92%, 100% { clip-path: inset(0 0 100% 0); transform: translate(0, 0); }
+    93%  { clip-path: inset(0 0 58% 0); transform: translate(-3px, -1px); }
+    95%  { clip-path: inset(12% 0 62% 0); transform: translate(4px, 1px); }
+    97%  { clip-path: inset(4% 0 70% 0); transform: translate(-2px, 0); }
+  }
+
+  @keyframes glitchBottom {
+    0%, 90%, 100% { clip-path: inset(100% 0 0 0); transform: translate(0, 0); }
+    91%  { clip-path: inset(62% 0 0 0); transform: translate(3px, 1px); }
+    94%  { clip-path: inset(70% 0 8% 0); transform: translate(-4px, -1px); }
+    96%  { clip-path: inset(55% 0 0 0); transform: translate(2px, 0); }
   }
 
   .subtitle {
@@ -103,6 +209,38 @@
     color: var(--bg);
   }
 
+  .tab-btn:hover:not(.active)::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 3px;
+    background: var(--fg);
+  }
+
+  .tab-badge {
+    display: none;
+    margin-left: 7px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    letter-spacing: 0;
+    background: var(--fg);
+    color: var(--bg);
+    vertical-align: 1px;
+  }
+
+  .tab-btn.ready .tab-badge { display: inline-block; }
+
+  /* unvisited results waiting on the Analysis tab: make it impossible to miss */
+  .tab-btn.ready:not(.active) {
+    animation: tabNudge 2.4s ease-in-out infinite;
+  }
+
+  @keyframes tabNudge {
+    0%, 100% { box-shadow: 0 0 0 0 var(--fg); }
+    50%      { box-shadow: 0 -3px 0 0 var(--fg); }
+  }
+
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
 
@@ -127,6 +265,67 @@
     letter-spacing: 0.04em;
     margin: 0 0 10px 0;
   }
+
+  .loaded-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .lb-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 0;
+  }
+
+  .lb-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--fg);
+    flex: none;
+  }
+
+  .lb-file {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 320px;
+  }
+
+  .lb-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .find-hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin: 0 0 10px 0;
+  }
+
+  #findInput {
+    width: 100%;
+    min-height: 240px;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.6;
+    letter-spacing: 0.06em;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+  #findInput:focus { outline: none; box-shadow: inset 0 0 0 1px var(--fg); }
 
   .upload-row {
     display: flex;
@@ -186,7 +385,7 @@
     letter-spacing: normal;
   }
 
-  .link-btn:hover { background: none; color: var(--fg); }
+  .link-btn:hover { background: none; color: var(--fg); text-decoration-thickness: 2px; }
   .status-line.err::before { content: "✗ "; }
   .status-line.err { font-weight: 700; }
 
@@ -278,11 +477,11 @@
     user-select: none;
   }
 
-  thead th:hover { text-decoration: underline; }
+  thead th:hover { text-decoration: underline; text-decoration-thickness: 2px; }
   thead th::after { content: " ⤫"; font-weight: 400; font-size: 9px; opacity: 0.5; }
 
   thead .filter-row th {
-    padding: 4px;
+    padding: 6px 8px 8px;
     font-weight: 400;
     cursor: default;
   }
@@ -293,14 +492,21 @@
   thead .filter-row input,
   thead .filter-row select {
     width: 100%;
+    min-width: 72px;
     font-family: inherit;
     font-size: 11px;
     font-weight: 400;
     border: 1px solid var(--muted-border);
-    padding: 4px 5px;
+    padding: 5px 7px;
     background: var(--bg);
     color: var(--fg);
     text-transform: none;
+  }
+
+  thead .filter-row input:focus,
+  thead .filter-row select:focus {
+    outline: none;
+    border-color: var(--fg);
   }
 
   tbody td {
@@ -313,12 +519,23 @@
     text-overflow: ellipsis;
   }
 
+  tbody tr:hover td {
+    background-image: linear-gradient(90deg, var(--row-wash), transparent 70%);
+  }
+
   tbody tr.unmatched td { font-weight: 600; font-style: italic; }
+
+  td.cgpa-high {
+    background: var(--high-bg);
+    color: var(--high-fg);
+    font-weight: 700;
+  }
 
   td.name-male { background: var(--male-bg); }
   td.name-female { background: var(--female-bg); }
 
-  td a { color: var(--fg); text-decoration: underline; }
+  td a { color: var(--fg); text-decoration: underline; text-underline-offset: 2px; }
+  td a:hover { text-decoration-thickness: 2px; }
 
   .table-wrap {
     max-height: 60vh;
@@ -355,6 +572,14 @@
   .stat-box {
     border: 1px solid var(--muted-border);
     padding: 10px 12px;
+    transition: transform 0.12s ease, border-color 0.12s ease;
+  }
+
+  .stat-box-click { cursor: pointer; }
+
+  .stat-box-click:hover {
+    transform: translateY(-2px);
+    border-color: var(--border);
   }
 
   .stat-box .stat-label {
@@ -382,7 +607,18 @@
     padding: 12px;
   }
 
-  .chart-box h3 {
+  .chart-box h2 .chart-hint {
+    float: right;
+    font-size: 11px;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--muted);
+  }
+
+  #branchGenderTable tbody tr:hover td { background: var(--row-wash); }
+
+  .chart-box h2 {
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -446,14 +682,7 @@
     z-index: 5;
   }
 
-  .footer-credit {
-    text-align: center;
-    font-size: 10px;
-    color: #999999;
-    margin-top: 32px;
-    padding-bottom: 12px;
-    letter-spacing: 0.03em;
-  }
+
 
   .easter-toast {
     position: fixed;
@@ -511,7 +740,7 @@
     animation-fill-mode: forwards;
   }
 
-  /* ---- consoling quote box + header + creator badge ---- */
+  /* ---- banner quote box + header + creator badge ---- */
   .header-row {
     display: flex;
     justify-content: space-between;
@@ -540,7 +769,7 @@
     font-size: 10px;
     font-style: italic;
     color: var(--fg);
-    opacity: 0.75;
+    opacity: 0.85;
     width: fit-content;
     max-width: 220px;
     text-align: center;
@@ -548,17 +777,17 @@
 
   .creator-badge {
     display: flex;
-    align-items: center;
-    gap: 6px;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0;
     color: var(--fg);
     text-decoration: none;
     border: 1px solid var(--border);
-    padding: 6px 10px;
+    padding: 6px 12px;
     white-space: nowrap;
   }
 
   .creator-badge:hover { background: var(--fg); color: var(--bg); }
-  .creator-badge:hover svg { fill: var(--bg); }
 
   .theme-toggle-fixed {
     display: flex;
@@ -575,36 +804,100 @@
 
   .theme-toggle-fixed:hover { background: var(--fg); color: var(--bg); }
 
+  /* echoes the traceNOX treatment, a size down */
   .creator-name {
-    font-size: 18px;
+    font-size: 28px;
     font-weight: 700;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .creator-tag {
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.7;
   }
 
   .thanks-note {
-    text-align: center;
-    font-size: 10px;
-    color: #999999;
-    margin-top: 4px;
-    padding-bottom: 4px;
-    letter-spacing: 0.02em;
+    max-width: 520px;
+    margin: 44px auto 0;
+    padding: 14px 22px;
+    border-left: 2px solid var(--muted-border);
+    font-size: 13px;
+    font-style: italic;
+    color: var(--muted);
+    letter-spacing: 0.01em;
+    line-height: 1.5;
   }
+
+  .thanks-note::before { content: '“'; }
+  .thanks-note::after  { content: '”'; }
 
   /* ---- mobile responsive ---- */
   @media (max-width: 640px) {
     body { padding: 12px; font-size: 12px; }
-    h1 { font-size: 18px; }
-    .creator-name { font-size: 14px; }
+    h1 { font-size: 32px; }
+    .creator-name { font-size: 22px; }
     .creator-badge { padding: 6px 10px; align-self: flex-start; }
     .header-row { flex-direction: column; align-items: stretch; }
     .header-right { flex-direction: column; align-items: flex-start; }
     .quote-box { max-width: none; text-align: left; }
-    .subtitle { font-size: 11px; }
+    /* only NOX glitches - the author never does */
+  .glitch {
+    position: relative;
+    display: inline-block;
+  }
+
+  .glitch::before,
+  .glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .glitch::before {
+    color: var(--muted);
+    animation: glitchTop 3.2s steps(2, end) infinite;
+  }
+
+  .glitch::after {
+    color: var(--fg);
+    animation: glitchBottom 2.7s steps(2, end) infinite;
+  }
+
+  @keyframes glitchTop {
+    0%, 92%, 100% { clip-path: inset(0 0 100% 0); transform: translate(0, 0); }
+    93%  { clip-path: inset(0 0 58% 0); transform: translate(-3px, -1px); }
+    95%  { clip-path: inset(12% 0 62% 0); transform: translate(4px, 1px); }
+    97%  { clip-path: inset(4% 0 70% 0); transform: translate(-2px, 0); }
+  }
+
+  @keyframes glitchBottom {
+    0%, 90%, 100% { clip-path: inset(100% 0 0 0); transform: translate(0, 0); }
+    91%  { clip-path: inset(62% 0 0 0); transform: translate(3px, 1px); }
+    94%  { clip-path: inset(70% 0 8% 0); transform: translate(-4px, -1px); }
+    96%  { clip-path: inset(55% 0 0 0); transform: translate(2px, 0); }
+  }
+
+  .subtitle { font-size: 11px; }
 
     .tab-nav { flex-wrap: wrap; }
     .tab-btn { padding: 8px 12px; font-size: 11px; flex: 1 1 auto; margin-right: 0; }
 
     .panel { padding: 12px; }
+
+    .loaded-bar { align-items: stretch; flex-direction: column; }
+    .lb-file { max-width: none; }
+    .lb-right { flex-direction: column; align-items: stretch; }
+    .lb-right button { width: 100%; }
+
+    #findInput { min-height: 200px; }
 
     .upload-row { flex-direction: column; gap: 16px; }
     .upload-slot { flex: 1 1 auto; min-width: 0; width: 100%; }
@@ -621,7 +914,7 @@
     .table-wrap { max-height: 50vh; }
     table { font-size: 11px; }
     thead th, tbody td { padding: 5px 6px; max-width: 140px; white-space: normal; }
-    thead .filter-row input, thead .filter-row select { font-size: 10px; padding: 3px 4px; }
+    thead .filter-row input, thead .filter-row select { font-size: 10px; padding: 4px 5px; min-width: 0; }
 
     .columns-panel { left: 0; right: 0; width: auto; }
 
@@ -638,24 +931,15 @@
 
 <div class="header-row">
   <div>
-    <h1 id="mainTitle">NEO ID Matcher</h1>
-    <p class="subtitle">Match NEO IDs to names and reg numbers.</p>
+    <h1 id="mainTitle">trace<span class="glitch" data-text="NOX">NOX</span></h1>
+    <p class="subtitle">are you shortlisted, why? why not?</p>
   </div>
   <div class="header-right">
     <div class="quote-box" id="consolingBanner"></div>
     <div class="badge-row">
       <a class="creator-badge" href="https://github.com/kiraseoul/" target="_blank" rel="noopener">
-        <svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor" aria-hidden="true">
-          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
-            0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13
-            -.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66
-            .07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15
-            -.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27
-            .68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12
-            .51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48
-            0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-        </svg>
         <span class="creator-name">kiraseoul</span>
+        <span class="creator-tag">the dark creator</span>
       </a>
       <button id="themeToggle" class="theme-toggle-fixed" type="button" aria-label="Toggle theme">
         <svg id="iconSun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -672,7 +956,8 @@
 
 <div class="tab-nav">
   <button class="tab-btn active" id="tabBtnMatch" data-tab="match">Match Finder</button>
-  <button class="tab-btn" id="tabBtnAnalysis" data-tab="analysis">Analysis</button>
+  <button class="tab-btn" id="tabBtnAnalysis" data-tab="analysis">Analysis<span class="tab-badge" id="analysisBadge"></span></button>
+  <button class="tab-btn" id="tabBtnFind" data-tab="find">Find</button>
 </div>
 
 <div class="tab-panel" id="tabAnalysis">
@@ -687,26 +972,26 @@
     <div class="stat-grid" id="summaryStats"></div>
 
     <div class="chart-grid">
-      <div class="chart-box"><h3>CGPA distribution (bands)</h3><canvas id="chartCgpaBands"></canvas></div>
-      <div class="chart-box"><h3>Gender split</h3><canvas id="chartGender"></canvas></div>
-      <div class="chart-box"><h3>Branch distribution</h3><canvas id="chartBranch"></canvas></div>
-      <div class="chart-box"><h3>CGPA by branch (mean)</h3><canvas id="chartCgpaByBranch"></canvas></div>
+      <div class="chart-box"><h2>CGPA distribution (bands)<span class="chart-hint">click a bar to filter</span></h2><canvas id="chartCgpaBands"></canvas></div>
+      <div class="chart-box"><h2>Gender split<span class="chart-hint">click a slice to filter</span></h2><canvas id="chartGender"></canvas></div>
+      <div class="chart-box"><h2>Branch distribution<span class="chart-hint">click a bar to filter</span></h2><canvas id="chartBranch"></canvas></div>
+      <div class="chart-box"><h2>CGPA by branch (mean)<span class="chart-hint">click a bar to filter</span></h2><canvas id="chartCgpaByBranch"></canvas></div>
     </div>
 
     <div class="panel">
-      <p class="panel-title">Branch × Gender</p>
+      <h2 class="panel-title">Branch × Gender</h2>
       <div class="table-wrap" style="max-height: 300px;">
         <table id="branchGenderTable"></table>
       </div>
     </div>
 
     <div class="panel">
-      <p class="panel-title">Correlation</p>
+      <h2 class="panel-title">Correlation</h2>
       <div id="correlationBox"></div>
     </div>
 
     <div class="panel">
-      <p class="panel-title">Candidate checker</p>
+      <h2 class="panel-title">Candidate checker</h2>
       <div class="checker-form">
         <div class="checker-field"><label>CGPA</label><input type="text" id="checkCgpa" placeholder="e.g. 8.7"></div>
         <div class="checker-field"><label>Gender</label><input type="text" id="checkGender" placeholder="male / female"></div>
@@ -720,15 +1005,29 @@
   </div>
 </div>
 
+<div class="tab-panel" id="tabFind">
+  <div class="panel">
+    <h2 class="panel-title">Paste Neo IDs</h2>
+    <p class="find-hint">One per line. No file, no column headers — just the IDs.</p>
+    <textarea id="findInput" spellcheck="false" placeholder="U4T9X7O4&#10;E3O7X7B0&#10;I3E4W0E0"></textarea>
+    <div class="actions-row">
+      <button id="findRunBtn" type="button">Trace these</button>
+      <button id="findClearBtn" type="button">Clear</button>
+      <div class="result-meta" id="findCount"></div>
+    </div>
+    <div class="status-line" id="findStatus"></div>
+  </div>
+</div>
+
 <div class="tab-panel active" id="tabMatch">
 
-  <div class="panel">
-    <p class="panel-title">Upload shortlist</p>
+  <div class="panel" id="uploadPanel">
+    <h2 class="panel-title">Upload shortlist</h2>
     <div class="upload-row">
       <div class="upload-slot" id="shortlistSlot">
         <label for="shortlistFile">Shortlist sheet (.xlsx)</label>
         <input type="file" id="shortlistFile" accept=".xlsx,.xls">
-        <div class="hint">Any sheet with a "neo id" column. Match runs automatically.</div>
+        <div class="hint">system lies, trace doesn't.</div>
         <div class="status-line" id="shortlistStatus"></div>
       </div>
       <div class="upload-slot" id="refSlot" style="display:none;">
@@ -738,14 +1037,30 @@
         <div class="status-line" id="refStatus"></div>
       </div>
     </div>
-    <div class="status-line ok" id="refLoadedNote" style="display:none;"></div>
-    <button id="changeRefBtn" class="link-btn" type="button" style="display:none;">change reference file</button>
+    <div class="status-line ok" id="refLoadedNote" style="display:none;" hidden></div>
 
     <div class="actions-row">
       <button id="runMatchBtn" disabled>Run match</button>
-      <button id="clearBtn" type="button">Clear</button>
-      <div class="result-meta" id="shortlistRowsStat"></div>
-      <div class="result-meta" id="minCgpaStat"></div>
+      <div class="row-spacer"></div>
+    </div>
+  </div>
+
+  <div class="panel loaded-bar" id="loadedBar" style="display:none;">
+    <div class="lb-left">
+      <span class="lb-dot"></span>
+      <span class="lb-file" id="loadedFileName"></span>
+      <span class="result-meta" id="shortlistRowsStat"></span>
+    </div>
+    <div class="lb-right">
+      <span class="result-meta" id="minCgpaStat"></span>
+      <button id="resetBtn" type="button">Reset</button>
+    </div>
+  </div>
+
+  <div class="panel" id="resultsPanel" style="display:none;">
+    <div class="actions-row" style="margin-top:0;">
+      <h2 class="panel-title" style="margin:0;">2. Results</h2>
+      <div class="result-meta" id="resultMeta"></div>
       <div class="row-spacer"></div>
       <label id="sortModeWrap" style="display:none; font-size:11px; font-weight:700; text-transform:uppercase;">Sort
         <select id="sortModeSelect" style="margin-left:6px;">
@@ -754,13 +1069,6 @@
           <option value="cgpa-asc">CGPA: Low → High</option>
         </select>
       </label>
-    </div>
-  </div>
-
-  <div class="panel" id="resultsPanel" style="display:none;">
-    <div class="actions-row" style="margin-top:0;">
-      <p class="panel-title" style="margin:0;">2. Results</p>
-      <div class="result-meta" id="resultMeta"></div>
     </div>
     <div class="table-wrap">
       <table id="resultTable">
@@ -776,6 +1084,7 @@
         <button id="columnsBtn">Columns ▾</button>
         <div class="columns-panel" id="columnsPanel"></div>
       </div>
+      <button id="goAnalysisBtn" type="button">See the analysis ↗</button>
       <button id="downloadBtn" disabled>Download Excel (Matched + Unmatched sheets)</button>
     </div>
   </div>
@@ -784,25 +1093,26 @@
 
 </div>
 
-<div class="footer-credit">~ kiraseoul</div>
-<div class="thanks-note">Thanks to Accenture, Fidelity and Responsive for their kind support.</div>
+<blockquote class="thanks-note">Thanks to Accenture, Fidelity and Responsive for their kind support.</blockquote>
 <div class="watermark">kiraseoul</div>
 <div class="easter-toast" id="easterToast"></div>
 <div class="credits-panel" id="creditsPanel">
-  <div class="cp-title">NEO ID Matcher</div>
+  <div class="cp-title">traceNOX</div>
   <div>built by kiraseoul</div>
   <div class="cp-sub">press ? to close · try typing "kiraseoul" · try the konami code</div>
 </div>
 
 <script>
   // ---------------- Tabs ----------------
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
+    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
+    document.getElementById('tab' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+    if (name === 'analysis') document.getElementById('tabBtnAnalysis').classList.remove('ready');
+  }
+
   document.querySelectorAll('.tab-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('tab' + btn.dataset.tab.charAt(0).toUpperCase() + btn.dataset.tab.slice(1)).classList.add('active');
-    });
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
   // ---------------- Column configuration ----------------
@@ -811,16 +1121,27 @@
     { key: 'neo_id', label: 'Neo ID' },
     { key: 'name', label: 'Name' },
     { key: 'reg_no', label: 'Reg No', filter: 'regBranch' },
-    { key: 'cgpa', label: 'CGPA' },
+    { key: 'cgpa', label: 'CGPA', filter: 'cgpaBand' },
+    { key: 'campus', label: 'Campus', filter: 'campus' },
+    { key: 'resume', label: 'Resume', render: 'link' },
     { key: 'email', label: 'Email' },
     { key: 'phone', label: 'Phone' },
     { key: 'gender', label: 'Gender', filter: 'gender' },
     { key: 'dob', label: 'DOB' },
-    { key: 'campus', label: 'Campus', filter: 'campus' },
     { key: 'tenth', label: '10th' },
     { key: 'twelfth', label: '12th' },
-    { key: 'resume', label: 'Resume', render: 'link' },
     { key: 'branch', label: 'Branch' },
+  ];
+
+  // branch codes people actually filter by, pinned to the top of the dropdown
+  const PRIORITY_CODES = ['bce', 'brs', 'bds', 'bai', 'bps'];
+
+  const CGPA_FILTERS = [
+    { value: '>=9', label: '≥ 9', test: (v) => v >= 9 },
+    { value: '8.5-9', label: '8.5 – 9', test: (v) => v >= 8.5 && v < 9 },
+    { value: '8-8.5', label: '8 – 8.5', test: (v) => v >= 8 && v < 8.5 },
+    { value: '7.5-8', label: '7.5 – 8', test: (v) => v >= 7.5 && v < 8 },
+    { value: '<7.5', label: '< 7.5', test: (v) => v < 7.5 },
   ];
 
   // sheet header -> internal key
@@ -863,7 +1184,15 @@
 
   function maybeAutoRun() {
     updateRunEnabled();
-    if (refWorkbook && shortlistRows) runMatch();
+    if (refWorkbook && shortlistRows) {
+      runMatch();
+    } else if (shortlistRows && !refWorkbook) {
+      // shortlist is in but the reference never loaded - say so instead of sitting there
+      document.getElementById('refSlot').style.display = 'block';
+      setStatus(refStatus, 'Pick reference_combined.xlsx to run the match.', false);
+      emptyState.textContent = 'Shortlist loaded, but the reference workbook is missing. Choose reference_combined.xlsx above.';
+      emptyState.style.display = 'block';
+    }
   }
 
   function updateRunEnabled() {
@@ -903,7 +1232,6 @@
       const note = document.getElementById('refLoadedNote');
       note.textContent = `Reference data loaded (${byNeoId.size} students).`;
       note.style.display = 'block';
-      document.getElementById('changeRefBtn').style.display = 'inline';
     }
     maybeAutoRun();
   }
@@ -934,11 +1262,6 @@
     }
   });
 
-  document.getElementById('changeRefBtn').addEventListener('click', () => {
-    document.getElementById('refSlot').style.display = 'block';
-    document.getElementById('refLoadedNote').style.display = 'none';
-    document.getElementById('changeRefBtn').style.display = 'none';
-  });
 
   function clearShortlist() {
     shortlistRows = null;
@@ -946,7 +1269,13 @@
     shortlistFileInput.value = '';
     shortlistStatus.textContent = '';
     shortlistStatus.className = 'status-line';
+    document.getElementById('uploadPanel').style.display = 'block';
+    document.getElementById('loadedBar').style.display = 'none';
+    document.getElementById('tabBtnAnalysis').classList.remove('ready');
+    switchTab('match');
     document.getElementById('shortlistRowsStat').textContent = '';
+    document.getElementById('findInput').value = '';
+    document.getElementById('findCount').textContent = '';
     document.getElementById('minCgpaStat').textContent = '';
     resultsPanel.style.display = 'none';
     document.getElementById('sortModeWrap').style.display = 'none';
@@ -958,7 +1287,55 @@
     emptyState.style.display = 'block';
   }
 
-  document.getElementById('clearBtn').addEventListener('click', clearShortlist);
+  function setShortlist(rows, neoCol, sourceLabel, meta) {
+    shortlistRows = rows;
+    shortlistRows._neoCol = neoCol;
+    document.getElementById('loadedFileName').textContent = sourceLabel;
+    document.getElementById('shortlistRowsStat').innerHTML = meta;
+    maybeAutoRun();
+  }
+
+  // ---------------- Find: Neo IDs pasted straight in ----------------
+  const findInput = document.getElementById('findInput');
+  const findStatus = document.getElementById('findStatus');
+
+  function parsePastedIds(text) {
+    const seen = new Set();
+    // Neo IDs are alphanumeric, so treat anything else as a separator
+    return text.split(/[^A-Za-z0-9]+/).filter((t) => t && !seen.has(t) && seen.add(t));
+  }
+
+  findInput.addEventListener('input', () => {
+    const n = parsePastedIds(findInput.value).length;
+    document.getElementById('findCount').innerHTML = n ? `<strong>${n}</strong> ID${n === 1 ? '' : 's'}` : '';
+  });
+
+  document.getElementById('findRunBtn').addEventListener('click', () => {
+    const ids = parsePastedIds(findInput.value);
+    if (!ids.length) {
+      setStatus(findStatus, 'Paste at least one Neo ID.', false);
+      return;
+    }
+    if (!refWorkbook) {
+      setStatus(findStatus, 'Reference data has not loaded yet.', false);
+      return;
+    }
+    findStatus.textContent = '';
+    findStatus.className = 'status-line';
+    setShortlist(ids.map((id) => ({ 'Neo ID': id })), 'Neo ID',
+      'pasted list', `<strong>${ids.length}</strong> pasted ID${ids.length === 1 ? '' : 's'}`);
+    switchTab('match');
+  });
+
+  document.getElementById('findClearBtn').addEventListener('click', () => {
+    findInput.value = '';
+    document.getElementById('findCount').textContent = '';
+    findStatus.textContent = '';
+    findStatus.className = 'status-line';
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', clearShortlist);
+  document.getElementById('goAnalysisBtn').addEventListener('click', () => switchTab('analysis'));
 
   // ---------------- Theme (light/dark) ----------------
   function applyTheme(theme) {
@@ -987,19 +1364,21 @@
 
   tryAutoLoadReference();
 
-  // ---------------- Consoling banner + empty-state joke ----------------
-  const CONSOLING_LINES = [
-    "It's fine. We'll get placed next time.",
-    "Better luck next round, the right one's still coming.",
-    "One rejection doesn't define the whole journey.",
-    "Every 'no' just clears the path for the right 'yes'.",
-    "Deep breath. There's always the next drive.",
-    "Not this one, but definitely one of the next ones.",
-    "Rejection is just redirection. Onward.",
-    "Placements are a marathon, not a single sprint.",
+  // ---------------- Banner line + empty-state joke ----------------
+  const BANNER_LINES = [
+    "The list already existed. You're just reading it.",
+    "Someone decided this weeks ago.",
+    "The criteria were never published.",
+    "The filter ran before you woke up.",
+    "You were a row. The row didn't clear.",
+    "Merit is a column in someone else's sheet.",
+    "Nothing personal. Nothing explained.",
+    "No one is coming to walk you through the cutoff.",
+    "The spreadsheet does not negotiate.",
+    "They had the numbers. You had the wait.",
   ];
   document.getElementById('consolingBanner').textContent =
-    CONSOLING_LINES[Math.floor(Math.random() * CONSOLING_LINES.length)];
+    BANNER_LINES[Math.floor(Math.random() * BANNER_LINES.length)];
 
   const EMPTY_STATE_JOKES = [
     "Nothing uploaded yet. Unlike your résumé, this page has no typos.",
@@ -1025,7 +1404,7 @@
 
   // ---------------- Watermark / easter eggs ----------------
   console.log('%c✦ kiraseoul ✦', 'font-weight:bold;font-size:15px;');
-  console.log('%cNEO ID Matcher, built quietly, runs entirely offline.', 'color:#666;font-size:11px;');
+  console.log('%ctraceNOX, built quietly, runs entirely offline.', 'color:#666;font-size:11px;');
 
   function isTypingInField(e) {
     const tag = (e.target.tagName || '').toLowerCase();
@@ -1147,11 +1526,8 @@
         shortlistRows = null;
         return;
       }
-      shortlistRows = rows;
-      shortlistRows._neoCol = neoCol;
+      setShortlist(rows, neoCol, file.name, `${rows.length} rows · column "${neoCol}"`);
       setStatus(shortlistStatus, `Loaded: ${rows.length} rows, using column "${neoCol}".`, true);
-      document.getElementById('shortlistRowsStat').innerHTML = `<strong>${rows.length}</strong> shortlist rows loaded`;
-      maybeAutoRun();
     } catch (err) {
       setStatus(shortlistStatus, 'Could not read this file: ' + err.message, false);
       shortlistRows = null;
@@ -1197,10 +1573,16 @@
     buildTableHead();
     buildColumnsPanel();
     renderRows();
+    document.getElementById('uploadPanel').style.display = 'none';
+    document.getElementById('loadedBar').style.display = 'flex';
     resultsPanel.style.display = 'block';
     emptyState.style.display = 'none';
     document.getElementById('sortModeWrap').style.display = 'inline-block';
     runAnalysis();
+
+    const analysisTab = document.getElementById('tabBtnAnalysis');
+    document.getElementById('analysisBadge').textContent = fullResults.filter((r) => r._fullMatch).length;
+    if (!analysisTab.classList.contains('active')) analysisTab.classList.add('ready');
   }
 
   function buildTableHead() {
@@ -1208,7 +1590,12 @@
     filterRow.innerHTML = '';
 
     const campusValues = [...new Set(fullResults.map((r) => r.campus).filter(Boolean))].sort();
-    const branchCodes = [...new Set(fullResults.map((r) => extractBranchCode(r.reg_no)).filter(Boolean))].sort();
+    const branchCodes = [...new Set(fullResults.map((r) => extractBranchCode(r.reg_no)).filter(Boolean))]
+      .sort((a, b) => {
+        const ai = PRIORITY_CODES.indexOf(a), bi = PRIORITY_CODES.indexOf(b);
+        if (ai !== bi) return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+        return a.localeCompare(b);
+      });
 
     COLUMN_DEFS.forEach((col) => {
       if (hiddenCols.has(col.key)) return;
@@ -1243,6 +1630,19 @@
         campusValues.forEach((v) => {
           const opt = document.createElement('option');
           opt.value = v; opt.textContent = v;
+          select.appendChild(opt);
+        });
+        select.value = filters[col.key];
+        select.addEventListener('change', (e) => { filters[col.key] = e.target.value; renderRows(); });
+        filterTh.appendChild(select);
+      } else if (col.filter === 'cgpaBand') {
+        const select = document.createElement('select');
+        const allOpt = document.createElement('option');
+        allOpt.value = ''; allOpt.textContent = 'All';
+        select.appendChild(allOpt);
+        CGPA_FILTERS.forEach((b) => {
+          const opt = document.createElement('option');
+          opt.value = b.value; opt.textContent = b.label;
           select.appendChild(opt);
         });
         select.value = filters[col.key];
@@ -1314,6 +1714,12 @@
         if (col.filter === 'regBranch') {
           return extractBranchCode(row.reg_no) === f;
         }
+        if (col.filter === 'cgpaBand') {
+          const v = parseFloat(row.cgpa);
+          if (isNaN(v)) return false;
+          const band = CGPA_FILTERS.find((b) => b.value === f);
+          return band ? band.test(v) : true;
+        }
         return String(row[col.key] ?? '').toLowerCase().includes(f);
       })
     );
@@ -1370,6 +1776,8 @@
           else if (g === 'female') td.className = 'name-female';
         }
 
+        if (col.key === 'cgpa' && parseFloat(val) >= 9) td.className = 'cgpa-high';
+
         if (col.render === 'link' && val) {
           const a = document.createElement('a');
           a.href = val;
@@ -1397,7 +1805,7 @@
     const unmatched = filtered.filter((r) => !r._fullMatch);
 
     const wb = XLSX.utils.book_new();
-    wb.Props = { Author: 'kiraseoul', Title: 'NEO ID Match Result' };
+    wb.Props = { Author: 'kiraseoul', Title: 'traceNOX Match Result' };
     [['Matched', matched], ['Unmatched', unmatched]].forEach(([sheetName, rows]) => {
       const ws = XLSX.utils.json_to_sheet(rows);
       const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
@@ -1413,14 +1821,6 @@
   }
 
   // ---------------- Shortlist Criteria Checker (deterministic, no ML) ----------------
-  const CGPA_BANDS = [
-    { label: '<8.0', test: (v) => v < 8.0 },
-    { label: '8.0–8.49', test: (v) => v >= 8.0 && v < 8.5 },
-    { label: '8.5–8.99', test: (v) => v >= 8.5 && v < 9.0 },
-    { label: '9.0–9.49', test: (v) => v >= 9.0 && v < 9.5 },
-    { label: '9.5+', test: (v) => v >= 9.5 },
-  ];
-
   // reg-no code -> specialisation, same table the reference workbook is built from.
   // bce/bcb are deliberately absent: those codes cover several specialisations,
   // so their rows fall through to the free-text rules below.
@@ -1493,9 +1893,9 @@
       ? { count: cgpaVals.length, min: Math.min(...cgpaVals), max: Math.max(...cgpaVals), mean: +(cgpaVals.reduce((a, b) => a + b, 0) / cgpaVals.length).toFixed(2) }
       : { count: 0, min: null, max: null, mean: null };
 
-    const cgpa_bands = CGPA_BANDS.map((band) => {
+    const cgpa_bands = [...CGPA_FILTERS].reverse().map((band) => {
       const inBand = cgpaVals.filter(band.test);
-      return { label: band.label, count: inBand.length, pct: cgpaVals.length ? +(100 * inBand.length / cgpaVals.length).toFixed(1) : 0 };
+      return { label: band.label, value: band.value, count: inBand.length, pct: cgpaVals.length ? +(100 * inBand.length / cgpaVals.length).toFixed(1) : 0 };
     });
 
     const branchOf = (r) => r.branch || normalizeBranch(r.reg_no, r.branch);
@@ -1616,6 +2016,29 @@
     if (charts[id]) { charts[id].destroy(); delete charts[id]; }
   }
 
+  // analysis -> list: set one filter, clear the rest, jump to the table
+  function applyFilterFromAnalysis(key, value) {
+    COLUMN_DEFS.forEach((c) => (filters[c.key] = ''));
+    filters[key] = value;
+    hiddenCols.delete(key);
+    buildTableHead();
+    buildColumnsPanel();
+    renderRows();
+    switchTab('match');
+    document.getElementById('resultsPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // wires a chart's click handler to whichever filter its labels represent
+  function chartFilter(labels, toFilter) {
+    return (evt, elements) => {
+      if (!elements.length) return;
+      const picked = labels[elements[0].index];
+      if (picked === undefined) return;
+      const f = toFilter(picked);
+      if (f) applyFilterFromAnalysis(f.key, f.value);
+    };
+  }
+
   function renderAnalysis() {
     document.getElementById('analysisEmpty').style.display = 'none';
     document.getElementById('analysisContent').style.display = 'block';
@@ -1631,16 +2054,24 @@
 
     const summaryStats = document.getElementById('summaryStats');
     summaryStats.innerHTML = '';
+    const nineUp = shortlisted.filter((r) => r.cgpa !== null && r.cgpa >= 9).length;
+    const campuses = new Set(shortlisted.map((r) => r.campus).filter(Boolean));
     const boxes = [
-      ['Shortlisted', shortlisted.length],
-      ['CGPA min', stats.cgpa.min ?? '—'],
-      ['CGPA max', stats.cgpa.max ?? '—'],
-      ['CGPA mean', stats.cgpa.mean ?? '—'],
+      ['Shortlisted', shortlisted.length, null],
+      ['CGPA 9+', `${nineUp}${shortlisted.length ? ` · ${Math.round(100 * nineUp / shortlisted.length)}%` : ''}`, '>=9'],
+      ['CGPA min', stats.cgpa.min ?? '—', null],
+      ['CGPA max', stats.cgpa.max ?? '—', null],
+      ['CGPA mean', stats.cgpa.mean ?? '—', null],
+      ['Campuses', campuses.size || '—', null],
     ];
-    boxes.forEach(([label, value]) => {
+    boxes.forEach(([label, value, cgpaBand]) => {
       const div = document.createElement('div');
-      div.className = 'stat-box';
+      div.className = 'stat-box' + (cgpaBand ? ' stat-box-click' : '');
       div.innerHTML = `<div class="stat-label">${label}</div><div class="stat-value">${value}</div>`;
+      if (cgpaBand) {
+        div.title = 'Show these in the list';
+        div.addEventListener('click', () => applyFilterFromAnalysis('cgpa', cgpaBand));
+      }
       summaryStats.appendChild(div);
     });
 
@@ -1658,6 +2089,9 @@
     Chart.defaults.color = chartColors.text;
     Chart.defaults.borderColor = chartColors.gridLine;
     Chart.defaults.font.family = 'Cascadia Code, Consolas, monospace';
+    const hoverPointer = (evt, elements) => {
+      evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+    };
 
     // CGPA bands (bar)
     destroyChart('cgpaBands');
@@ -1667,7 +2101,12 @@
         labels: stats.cgpa_bands.map((b) => b.label),
         datasets: [{ data: stats.cgpa_bands.map((b) => b.count), backgroundColor: chartColors.bar }],
       },
-      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+        onHover: hoverPointer,
+        onClick: chartFilter(stats.cgpa_bands.map((b) => b.value), (v) => ({ key: 'cgpa', value: v })),
+      },
     });
 
     // Gender split (pie)
@@ -1678,7 +2117,14 @@
         labels: stats.gender.map((g) => g.category),
         datasets: [{ data: stats.gender.map((g) => g.count), backgroundColor: stats.gender.map((g) => g.category === 'male' ? chartColors.male : g.category === 'female' ? chartColors.female : chartColors.unknown) }],
       },
-      options: { plugins: { legend: { position: 'bottom', labels: { font: { family: 'Cascadia Code' } } } } },
+      options: {
+        plugins: { legend: { position: 'bottom', labels: { font: { family: 'Cascadia Code' } } } },
+        onHover: hoverPointer,
+        onClick: chartFilter(stats.gender.map((g) => g.category), (v) => {
+          const code = v === 'male' ? 'M' : v === 'female' ? 'F' : '';
+          return code ? { key: 'gender', value: code } : null;
+        }),
+      },
     });
 
     // Branch distribution (bar)
@@ -1689,7 +2135,13 @@
         labels: stats.branch.map((b) => b.category),
         datasets: [{ data: stats.branch.map((b) => b.count), backgroundColor: chartColors.bar }],
       },
-      options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
+        onHover: hoverPointer,
+        onClick: chartFilter(stats.branch.map((b) => b.category), (v) => ({ key: 'branch', value: v.toLowerCase() })),
+      },
     });
 
     // CGPA by branch mean (bar)
@@ -1704,7 +2156,13 @@
         labels: branchWithCgpa.map((b) => b.category),
         datasets: [{ data: cgpaByBranchVals, backgroundColor: chartColors.barSecondary }],
       },
-      options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { min: axisMin, max: axisMax } } },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: { x: { min: axisMin, max: axisMax } },
+        onHover: hoverPointer,
+        onClick: chartFilter(branchWithCgpa.map((b) => b.category), (v) => ({ key: 'branch', value: v.toLowerCase() })),
+      },
     });
 
     // Branch x Gender table
@@ -1784,5 +2242,7 @@ ${JSON.stringify(statsJson, null, 2)}`;
   downloadBtn.addEventListener('click', downloadResult);
 </script>
 
+<script data-goatcounter="https://kiraseoul.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
