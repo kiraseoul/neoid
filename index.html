@@ -734,7 +734,7 @@
       <div class="upload-slot" id="refSlot" style="display:none;">
         <label for="refFile">Reference workbook (.xlsx)</label>
         <input type="file" id="refFile" accept=".xlsx,.xls">
-        <div class="hint">Needs an "A_name" and a "B_reg" sheet.</div>
+        <div class="hint">Needs a "students" sheet keyed by Neo ID.</div>
         <div class="status-line" id="refStatus"></div>
       </div>
     </div>
@@ -785,7 +785,7 @@
 </div>
 
 <div class="footer-credit">~ kiraseoul</div>
-<div class="thanks-note">Thanks to Accenture and Fidelity for their kind support.</div>
+<div class="thanks-note">Thanks to Accenture, Fidelity and Responsive for their kind support.</div>
 <div class="watermark">kiraseoul</div>
 <div class="easter-toast" id="easterToast"></div>
 <div class="credits-panel" id="creditsPanel">
@@ -812,15 +812,24 @@
     { key: 'name', label: 'Name' },
     { key: 'reg_no', label: 'Reg No', filter: 'regBranch' },
     { key: 'cgpa', label: 'CGPA' },
-    { key: 'email id (personal id)', label: 'Email' },
-    { key: 'phone no', label: 'Phone' },
+    { key: 'email', label: 'Email' },
+    { key: 'phone', label: 'Phone' },
     { key: 'gender', label: 'Gender', filter: 'gender' },
+    { key: 'dob', label: 'DOB' },
     { key: 'campus', label: 'Campus', filter: 'campus' },
-    { key: '10th', label: '10th' },
-    { key: '12th', label: '12th' },
-    { key: 'resume link', label: 'Resume', render: 'link' },
-    { key: 'brach', label: 'Branch' },
+    { key: 'tenth', label: '10th' },
+    { key: 'twelfth', label: '12th' },
+    { key: 'resume', label: 'Resume', render: 'link' },
+    { key: 'branch', label: 'Branch' },
   ];
+
+  // sheet header -> internal key
+  const REF_KEYS = {
+    'Neo ID': 'neo_id', 'Reg No': 'reg_no', 'Name': 'name', 'Email': 'email',
+    'Phone': 'phone', 'Gender': 'gender', 'DOB': 'dob', 'Campus': 'campus',
+    'Degree': 'degree', 'Branch': 'branch', 'CGPA': 'cgpa', '10th': 'tenth',
+    '12th': 'twelfth', 'Resume': 'resume',
+  };
 
   let refWorkbook = null;
   let shortlistRows = null;
@@ -865,20 +874,34 @@
 
   function parseRefWorkbook(data, sourceLabel, isAutoLoad) {
     const wb = XLSX.read(data, { type: 'array' });
-    if (!wb.Sheets['A_name'] || !wb.Sheets['B_reg']) {
-      setStatus(refStatus, 'Missing "A_name" or "B_reg" sheet in this workbook.', false);
+    const sheet = wb.Sheets['students'] || wb.Sheets[wb.SheetNames[0]];
+    if (!sheet) {
+      setStatus(refStatus, 'Missing a "students" sheet in this workbook.', false);
       refWorkbook = null;
       return;
     }
-    const sheetA = XLSX.utils.sheet_to_json(wb.Sheets['A_name']);
-    const sheetB = XLSX.utils.sheet_to_json(wb.Sheets['B_reg']);
-    refWorkbook = { sheetA, sheetB };
-    setStatus(refStatus, `${sourceLabel} - A_name: ${sheetA.length} rows, B_reg: ${sheetB.length} rows.`, true);
+    const byNeoId = new Map();
+    XLSX.utils.sheet_to_json(sheet).forEach((raw) => {
+      const rec = {};
+      Object.entries(raw).forEach(([header, value]) => {
+        const key = REF_KEYS[String(header).trim()];
+        if (key) rec[key] = value;
+      });
+      const id = String(rec.neo_id ?? '').trim();
+      if (id) byNeoId.set(id, { ...rec, neo_id: id });
+    });
+    if (!byNeoId.size) {
+      setStatus(refStatus, 'No rows with a "Neo ID" column in this workbook.', false);
+      refWorkbook = null;
+      return;
+    }
+    refWorkbook = { byNeoId };
+    setStatus(refStatus, `${sourceLabel} - ${byNeoId.size} students.`, true);
 
     if (isAutoLoad) {
       document.getElementById('refSlot').style.display = 'none';
       const note = document.getElementById('refLoadedNote');
-      note.textContent = `Reference data loaded (${sheetA.length + sheetB.length} rows).`;
+      note.textContent = `Reference data loaded (${byNeoId.size} students).`;
       note.style.display = 'block';
       document.getElementById('changeRefBtn').style.display = 'inline';
     }
@@ -1147,29 +1170,13 @@
   function runMatch() {
     const neoCol = shortlistRows._neoCol;
 
-    const aByNeoId = new Map();
-    refWorkbook.sheetA.forEach((r) => {
-      const id = String(r['Neo ID'] ?? '').trim();
-      const name = String(r['Full Name'] ?? '').trim().toLowerCase();
-      if (id) aByNeoId.set(id, name);
-    });
-
-    const bByName = new Map();
-    refWorkbook.sheetB.forEach((r) => {
-      const name = String(r['name'] ?? '').trim().toLowerCase();
-      if (name) bByName.set(name, r);
-    });
-
     fullResults = shortlistRows.map((row) => {
       const neoId = String(row[neoCol] ?? '').trim();
-      const name = aByNeoId.get(neoId);
-      const matched_a = name !== undefined;
-      const bRow = matched_a ? bByName.get(name) : undefined;
-      const matched_b = bRow !== undefined;
-      const { 'reg..no': regNo, name: _dropName, degree: _dropDegree, ...restOfB } = bRow || {};
+      const { degree: _dropDegree, ...student } = refWorkbook.byNeoId.get(neoId) || {};
 
-      const rec = { neo_id: neoId, name: name || '', reg_no: regNo || '', ...restOfB };
-      const tier = matched_a && matched_b ? 2 : matched_a ? 1 : 0;
+      const rec = { neo_id: neoId, name: '', reg_no: '', ...student };
+      // 2 = full record, 1 = known Neo ID but name only (legacy rows), 0 = unknown Neo ID
+      const tier = rec.reg_no ? 2 : rec.name ? 1 : 0;
       Object.defineProperty(rec, '_tier', { value: tier, enumerable: false });
       Object.defineProperty(rec, '_fullMatch', { value: tier === 2, enumerable: false });
       return rec;
@@ -1414,15 +1421,31 @@
     { label: '9.5+', test: (v) => v >= 9.5 },
   ];
 
+  // reg-no code -> specialisation, same table the reference workbook is built from.
+  // bce/bcb are deliberately absent: those codes cover several specialisations,
+  // so their rows fall through to the free-text rules below.
+  const CODE_BRANCH = {
+    bai: 'CSE with AI and ML', bbs: 'CSE and Business Systems (TCS)',
+    bcg: 'CSE with Gaming Technology', bci: 'CSE with Information Security',
+    bct: 'CSE with Internet of Things', bcy: 'CSE with Cyber Security and Digital Forensics',
+    bds: 'CSE with Data Science', bec: 'Electronics and Communication Engineering',
+    bee: 'Electrical and Electronics Engineering', bel: 'Electrical and Computer Science Engineering',
+    bet: 'CSE with Education Technology', bey: 'CSE with E-Commerce Technology',
+    bhi: 'CSE with Health Informatics', bit: 'Information Technology',
+    bkt: 'CSE with BlockChain Technology', blc: 'Electronics and Computer Engineering',
+    bps: 'CSE with Cyber Physical Systems', brs: 'CSE with AI and Robotics',
+    bsa: 'CSE with Cloud Computing and Automation',
+  };
+
   function normalizeBranch(reg_no, branchText) {
-    const code = extractBranchCode(reg_no);
+    const byCode = CODE_BRANCH[extractBranchCode(reg_no)];
+    if (byCode) return byCode;
     const text = String(branchText || '').toLowerCase().trim();
-    if (code === 'bps') return 'CSE - Cyber Physical Systems';
-    if (code === 'brs') return 'CSE - AI & Robotics';
-    if (code === 'bds') return 'CSE - Data Science';
-    if (code === 'bai' || /\bai\b|\bml\b|a\.i|m\.l/.test(text)) return 'CSE - AI & ML';
-    if (code === 'bce') return 'CSE Core';
-    if (text.includes('computer science') || text.includes('cse')) return 'CSE (unspecified)';
+    if (/robot/.test(text)) return 'CSE with AI and Robotics';
+    if (/\bai\b|\ba\.i\b|artificial|\bml\b|machine learning/.test(text)) return 'CSE with AI and ML';
+    if (/data sci/.test(text)) return 'CSE with Data Science';
+    if (/business system/.test(text)) return 'Computer Science and Business Systems';
+    if (/computer science|\bcse\b/.test(text)) return 'Computer Science and Engineering';
     return 'Other/Unclear';
   }
 
@@ -1475,7 +1498,7 @@
       return { label: band.label, count: inBand.length, pct: cgpaVals.length ? +(100 * inBand.length / cgpaVals.length).toFixed(1) : 0 };
     });
 
-    const branchOf = (r) => normalizeBranch(r.reg_no, r.branch);
+    const branchOf = (r) => r.branch || normalizeBranch(r.reg_no, r.branch);
     const branch = computeGroupStats(shortlisted, branchOf, shortlisted.length);
     const gender = computeGroupStats(shortlisted, (r) => (r.gender || 'unknown'), shortlisted.length);
 
@@ -1564,11 +1587,11 @@
   function toShortlistedRecord(r) {
     return {
       neo_id: r.neo_id, name: r.name, reg_no: r.reg_no,
-      email: r['email id (personal id)'], phone: r['phone no'],
+      email: r.email, phone: r.phone,
       gender: String(r.gender || '').toLowerCase(),
-      branch: r.brach,
-      cgpa: numOrNull(r.cgpa), tenth_pct: numOrNull(r['10th']), twelfth_pct: numOrNull(r['12th']),
-      resume_url: r['resume link'], campus: r.campus,
+      branch: r.branch, dob: r.dob,
+      cgpa: numOrNull(r.cgpa), tenth_pct: numOrNull(r.tenth), twelfth_pct: numOrNull(r.twelfth),
+      resume_url: r.resume, campus: r.campus,
     };
   }
 
